@@ -10,14 +10,19 @@ from flask import Flask, render_template, request, redirect, url_for, flash
 from flask import jsonify, send_from_directory, make_response, abort
 from flask import session as login_session
 from flask.ext.seasurf import SeaSurf
+
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.client import FlowExchangeError
+
 from sqlalchemy import create_engine, MetaData, Table, desc
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy_imageattach.stores.fs import FileSystemStore
 from sqlalchemy_imageattach.context import store_context, push_store_context
 from sqlalchemy_imageattach.context import pop_store_context
+
 from urllib2 import urlopen
+
 from werkzeug import secure_filename
 
 from database_setup import Base, User, UserImg, Antibody, Cytotoxin
@@ -44,9 +49,10 @@ fs_store = FileSystemStore(
     path='static/images/',
     base_url='http://localhost:5000/static/images/')
 
-# Setting up SQL Lite Database and SQL Alchemy's ORM
-# engine = create_engine('postgresql://postgres:biologics@localhost/biologics-catalog')
-engine = create_engine('sqlite:///biologicscatalog.db')
+# Setting up postgres Database and SQL Alchemy's ORM
+engine = create_engine(
+    'postgresql://postgres:biologics@localhost/biologics-catalog')
+# engine = create_engine('sqlite:///biologicscatalog.db')
 Base.metadata.bind = engine
 meta = MetaData(bind=engine)
 DBSession = sessionmaker(bind=engine)
@@ -589,10 +595,6 @@ def delete(dbtype, item_id):
         flash('Sorry, the page you tried to access is for members only. '
               'Please sign in first.')
         abort(401)
-        # if dbtype[-3:].lower() == 'lot':
-        #     return redirect(url_for(dbtype[:-3]))
-        # else:
-        #     return redirect(url_for(dbtype))
     deleteItem = (session.query(eval(dbtype[0].upper()+dbtype[1:]))
                   .filter_by(id=item_id).one())
     if login_session['user_id'] != deleteItem.user_id:
@@ -600,8 +602,14 @@ def delete(dbtype, item_id):
               'Please create your own item in order to modify it.')
         return redirect(url_for(dbtype))
     if request.method == 'POST':
-        session.delete(deleteItem)
-        session.commit()
+        try:
+            session.delete(deleteItem)
+            session.commit()
+        except IntegrityError as detail:
+            print 'Handling run-time error: ', detail
+            session.rollback()
+            flash('Delete Operation Failed')
+            return redirect(url_for('home'))
         if dbtype.endswith('Lot'):
             flash('%s Lot Deleted' % dbtype[:-3].capitalize())
             return redirect(url_for(dbtype[:-3]))

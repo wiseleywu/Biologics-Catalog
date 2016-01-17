@@ -2,7 +2,7 @@ from sqlalchemy import Column, ForeignKey, Integer, String, Float, Date
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy_imageattach.entity import Image, image_attachment
 from sqlalchemy_imageattach.context import store_context
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, backref
 from sqlalchemy import create_engine
 
 Base = declarative_base()
@@ -28,6 +28,7 @@ class Antibody(Base):
     id = Column(Integer, primary_key=True)
     weight = Column(Float, nullable=False)
     target = Column(String(80), nullable=False)
+    a_lot = relationship('AntibodyLot', cascade='all, delete-orphan')
     picture = image_attachment('AntibodyImg')
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship(User)
@@ -64,9 +65,9 @@ class AntibodyLot(Base):
     vialVolume = Column(Float, nullable=False)
     vialNumber = Column(Integer, nullable=False)
     antibody_id = Column(Integer, ForeignKey('antibody.id'))
-    antibody = relationship('Antibody', cascade='delete')
+    antibody = relationship('Antibody')
     user_id = Column(Integer, ForeignKey('user.id'))
-    user = relationship(User)
+    user = relationship(User, single_parent=True)
 
     @property
     def serialize(self):
@@ -89,6 +90,7 @@ class Cytotoxin(Base):
     id = Column(Integer, primary_key=True)
     weight = Column(Float, nullable=False)
     drugClass = Column(String(80), nullable=False)
+    lot = relationship('CytotoxinLot', cascade='all, delete-orphan')
     picture = image_attachment('CytotoxinImg')
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship(User)
@@ -119,7 +121,7 @@ class CytotoxinLot(Base):
     vialVolume = Column(Float, nullable=False)
     vialNumber = Column(Integer, nullable=False)
     cytotoxin_id = Column(Integer, ForeignKey('cytotoxin.id'))
-    cytotoxin = relationship('Cytotoxin', cascade='delete')
+    cytotoxin = relationship('Cytotoxin')
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship(User)
 
@@ -142,6 +144,7 @@ class Adc(Base):
     name = Column(String(80), nullable=False)
     chemistry = Column(String(80), nullable=False)
     id = Column(Integer, primary_key=True)
+    lot = relationship('AdcLot', cascade='all, delete-orphan')
     picture = image_attachment('AdcImg')
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship(User)
@@ -166,10 +169,12 @@ class AdcLot(Base):
     vialVolume = Column(Float, nullable=False)
     vialNumber = Column(Integer, nullable=False)
     adc_id = Column(Integer, ForeignKey('adc.id'))
-    adc = relationship('Adc', cascade='delete')
-    antibodylot_id = Column(Integer, ForeignKey('antibody_lot.id'))
+    adc = relationship('Adc')
+    antibodylot_id = Column(Integer,
+                            ForeignKey('antibody_lot.id', ondelete='cascade'))
     antibodylot = relationship(AntibodyLot)
-    cytotoxinlot_id = Column(Integer, ForeignKey('cytotoxin_lot.id'))
+    cytotoxinlot_id = Column(Integer,
+                             ForeignKey('cytotoxin_lot.id', ondelete='cascade'))
     cytotoxinlot = relationship(CytotoxinLot)
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship(User)
@@ -197,6 +202,7 @@ class AdcImg(Base, Image):
     adc = relationship('Adc')
 
 # #########################insert at end of file ##############################
-engine = create_engine('sqlite:///biologicscatalog.db')
-# engine = create_engine('postgresql://postgres:biologics@localhost/biologics-catalog')
+engine = create_engine(
+    'postgresql://postgres:biologics@localhost/biologics-catalog')
+# engine = create_engine('sqlite:///biologicscatalog.db')
 Base.metadata.create_all(engine)
