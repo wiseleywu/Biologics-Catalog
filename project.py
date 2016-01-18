@@ -1,10 +1,10 @@
-import datetime
 import os
 import random
 import string
 import httplib2
 import json
 import requests
+from datetime import datetime
 
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask import jsonify, send_from_directory, make_response, abort
@@ -59,10 +59,9 @@ DBSession = sessionmaker(bind=engine)
 session = DBSession()
 
 
-# Create anti-forgery state token
 @app.route('/login')
 def showLogin():
-    """Create anti-forgery code for the login session."""
+    """Create anti-forgery state token for the login session."""
     state = ''.join(
         random.choice(string.ascii_uppercase + string.digits)
         for x in range(32))
@@ -330,14 +329,24 @@ def getUserID(email):
         return None
 
 
+def login_info(login_session):
+    email, userID, loggedIn = None, None, False
+    if 'email' in login_session:
+        email = login_session['email']
+        userID = getUserID(login_session['email'])
+        loggedIn = True
+    return (email, userID, loggedIn)
+
+
 @app.route('/')
 @app.route('/home')
 def home():
     """Define website's homepage with both guest/ logged-in user access"""
-    email, loggedIn = None, False
-    if 'email' in login_session:
-        email = login_session['email']
-        loggedIn = True
+    # email, loggedIn = None, False
+    # if 'email' in login_session:
+    #     email = login_session['email']
+    #     loggedIn = True
+    (email, userID, loggedIn) = login_info(login_session)
     return render_template('home.html', title='Home',
                            email=email, loggedIn=loggedIn)
 
@@ -345,11 +354,12 @@ def home():
 @app.route('/antibody/')
 def antibody():
     """Define website's Antibody page with both guest/ logged-in user access"""
-    email, userID, loggedIn = None, None, False
-    if 'email' in login_session:
-        email = login_session['email']
-        userID = getUserID(login_session['email'])
-        loggedIn = True
+    # email, userID, loggedIn = None, None, False
+    # if 'email' in login_session:
+    #     email = login_session['email']
+    #     userID = getUserID(login_session['email'])
+    #     loggedIn = True
+    (email, userID, loggedIn) = login_info(login_session)
     antibodies = session.query(Antibody).order_by(Antibody.name).all()
     lots = session.query(AntibodyLot).all()
     lotdict = {}
@@ -381,11 +391,12 @@ def get_picture_url(dbtype, item_id):
 @app.route('/cytotoxin/')
 def cytotoxin():
     """Define website's Cytotoxin page with both guest/ logged-in user access"""
-    email, userID, loggedIn = None, None, False
-    if 'email' in login_session:
-        email = login_session['email']
-        userID = getUserID(login_session['email'])
-        loggedIn = True
+    # email, userID, loggedIn = None, None, False
+    # if 'email' in login_session:
+    #     email = login_session['email']
+    #     userID = getUserID(login_session['email'])
+    #     loggedIn = True
+    (email, userID, loggedIn) = login_info(login_session)
     cytotoxins = session.query(Cytotoxin).order_by(Cytotoxin.name).all()
     lots = session.query(CytotoxinLot).all()
     lotdict = {}
@@ -402,10 +413,11 @@ def cytotoxin():
 def adc():
     """Define website's ADC page with both guest/ logged-in user access"""
     email, userID, loggedIn = None, None, False
-    if 'email' in login_session:
-        email = login_session['email']
-        userID = getUserID(login_session['email'])
-        loggedIn = True
+    # if 'email' in login_session:
+    #     email = login_session['email']
+    #     userID = getUserID(login_session['email'])
+    #     loggedIn = True
+    (email, userID, loggedIn) = login_info(login_session)
     adcs = session.query(Adc).order_by(Adc.name).all()
     lots = session.query(AdcLot).all()
     lotdict = {}
@@ -428,20 +440,12 @@ def createType(dbtype):
     table = Table(dbtype, meta, autoload=True, autoload_with=engine)
     user_id = getUserID(login_session['email'])
     if request.method == 'POST':
-        if dbtype == 'antibody':
-            new = eval(dbtype.capitalize())(name=request.form['name'],
-                                            weight=request.form['weight'],
-                                            target=request.form['target'],
-                                            user_id=user_id)
-        elif dbtype == 'cytotoxin':
-            new = eval(dbtype.capitalize())(name=request.form['name'],
-                                            weight=request.form['weight'],
-                                            drugClass=request.form['drugClass'],
-                                            user_id=user_id)
-        else:
-            new = eval(dbtype.capitalize())(name=request.form['name'],
-                                            chemistry=request.form['chemistry'],
-                                            user_id=user_id)
+        new = eval(dbtype.capitalize())()
+        for field in request.form:
+            if hasattr(new, field):
+                setattr(new, field, request.form[field])
+        setattr(new, 'user_id', user_id)
+
         session.add(new)
         session.commit()
         flash('%s Created' % dbtype.capitalize())
@@ -449,10 +453,9 @@ def createType(dbtype):
         if image and allowed_file(image.filename):
             with store_context(fs_store):
                 new.picture.from_file(image)
-            return redirect(url_for(dbtype))
-        else:
+        elif image and not allowed_file(image.filename):
             flash('Unsupported file detected. No image has been uploaded.')
-            return redirect(url_for(dbtype))
+        return redirect(url_for(dbtype))
     else:
         return render_template('create-type.html',
                                columns=table.columns, dbtype=dbtype)
@@ -474,34 +477,20 @@ def createTypeLot(dbtype, item_id):
                 .filter_by(id=item_id).one().user_id)
     user_id = getUserID(login_session['email'])
     if request.method == 'POST':
-        if dbtype == 'antibody':
-            new = AntibodyLot(date=(datetime.datetime.strptime(request.form['date'].replace('-', ' '), '%Y %m %d')),
-                              aggregate=request.form['aggregate'],
-                              endotoxin=request.form['endotoxin'],
-                              concentration=request.form['concentration'],
-                              vialVolume=request.form['vialVolume'],
-                              vialNumber=request.form['vialNumber'],
-                              antibody_id=item_id,
-                              user_id=user_id)
-        elif dbtype == 'cytotoxin':
-            new = CytotoxinLot(date=datetime.datetime.strptime(request.form['date'].replace('-', ' '), '%Y %m %d'),
-                               purity=request.form['purity'],
-                               concentration=request.form['concentration'],
-                               vialVolume=request.form['vialVolume'],
-                               vialNumber=request.form['vialNumber'],
-                               cytotoxin_id=item_id,
-                               user_id=user_id)
-        else:
-            new = AdcLot(date=datetime.datetime.strptime(request.form['date'].replace('-', ' '), '%Y %m %d'),
-                         aggregate=request.form['aggregate'],
-                         endotoxin=request.form['endotoxin'],
-                         concentration=request.form['concentration'],
-                         vialVolume=request.form['vialVolume'],
-                         vialNumber=request.form['vialNumber'],
-                         antibodylot_id=request.form['antibodylot_id'],
-                         cytotoxinlot_id=request.form['cytotoxinlot_id'],
-                         adc_id=item_id,
-                         user_id=user_id)
+        new = eval(dbtype.capitalize()+'Lot')()
+        for field in request.form:
+            if field == 'date':
+                try:
+                    setattr(new, field, datetime.strptime(request.form[field].replace('-', ' '), '%Y %m %d'))
+                except ValueError as detail:
+                    print 'Handling run-time error: ', detail
+                    flash('Invalid date detected. Please type the date in '
+                          'format: MM/DD/YYYY')
+                    return redirect(url_for(dbtype))
+            if hasattr(new, field):
+                setattr(new, field, request.form[field])
+        setattr(new, dbtype+'_id', item_id)
+        setattr(new, 'user_id', user_id)
         session.add(new)
         session.commit()
         flash('%s Lot Created' % dbtype.capitalize())
@@ -541,10 +530,9 @@ def editType(dbtype, item_id):
         if image and allowed_file(image.filename):
             with store_context(fs_store):
                 editedItem.picture.from_file(image)
-            return redirect(url_for(dbtype))
-        else:
+        elif image and not allowed_file(image.filename):
             flash('Unsupported file detected. No image has been uploaded.')
-            return redirect(url_for(dbtype))
+        return redirect(url_for(dbtype))
     else:
         return render_template('edit-type.html', dbtype=dbtype,
                                columns=table.columns, item_id=item_id,
@@ -570,7 +558,13 @@ def editTypeLot(dbtype, item_id):
     maxtoxinlot = (session.query(CytotoxinLot)
                    .order_by(desc(CytotoxinLot.id)).first().id)
     if request.method == 'POST':
-        editedItem.date = (datetime.datetime.strptime(request.form['date'].replace('-', ' '), '%Y %m %d'))
+        try:
+            editedItem.date = (datetime.strptime(request.form['date'].replace('-', ' '), '%Y %m %d'))
+        except ValueError as detail:
+            print 'Handling run-time error: ', detail
+            flash('Invalid date detected. Please type the date in '
+                  'format: MM/DD/YYYY')
+            return redirect(url_for(dbtype))
         for column in table.columns:
             if column.name in ('id', 'date', 'antibody_id',
                                'cytotoxin_id', 'adc_id', 'user_id'):
@@ -756,11 +750,6 @@ def attach_picture_url(table, item_id, location):
     except Exception:
         session.rollback()
         raise
-
-# def delete_picture(table, item_id):
-#     item=session.query(table).filter_by(id=item_id).one()
-#     fs_store.delete(item.picture.original)
-#     session.commit()
 
 if __name__ == '__main__':
     app.secret_key = 'super_secret_key'
