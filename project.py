@@ -330,6 +330,7 @@ def getUserID(email):
 
 
 def login_info(login_session):
+    """Provide login status to pass onto html templates"""
     email, userID, loggedIn = None, None, False
     if 'email' in login_session:
         email = login_session['email']
@@ -338,14 +339,29 @@ def login_info(login_session):
     return (email, userID, loggedIn)
 
 
+def set_category(dbtype):
+    """Provide category/item data to pass onto html templates"""
+    # define object and object lots
+    obj = eval(dbtype.capitalize())
+    items = eval(dbtype.capitalize()+'Lot')
+
+    # query the object items and object lots items
+    cat = session.query(obj).order_by(obj.name).all()
+    lots = session.query(items).all()
+
+    # create a dict to associate object id with its respective object lot items
+    lotdict = {}
+    for x in range(1, session.query(obj).count()+1):
+        lotdict[x] = (session.query(items)
+                      .filter(getattr(items, dbtype+'_id') == x)
+                      .order_by(items.date).all())
+    return (cat, lotdict, lots)
+
+
 @app.route('/')
 @app.route('/home')
 def home():
     """Define website's homepage with both guest/ logged-in user access"""
-    # email, loggedIn = None, False
-    # if 'email' in login_session:
-    #     email = login_session['email']
-    #     loggedIn = True
     (email, userID, loggedIn) = login_info(login_session)
     return render_template('home.html', title='Home',
                            email=email, loggedIn=loggedIn)
@@ -354,19 +370,8 @@ def home():
 @app.route('/antibody/')
 def antibody():
     """Define website's Antibody page with both guest/ logged-in user access"""
-    # email, userID, loggedIn = None, None, False
-    # if 'email' in login_session:
-    #     email = login_session['email']
-    #     userID = getUserID(login_session['email'])
-    #     loggedIn = True
     (email, userID, loggedIn) = login_info(login_session)
-    antibodies = session.query(Antibody).order_by(Antibody.name).all()
-    lots = session.query(AntibodyLot).all()
-    lotdict = {}
-    for x in range(1, session.query(Antibody).count()+1):
-        lotdict[x] = (session.query(AntibodyLot)
-                      .filter(AntibodyLot.antibody_id == x)
-                      .order_by(AntibodyLot.date).all())
+    (antibodies, lotdict, lots) = set_category('antibody')
     return render_template('antibody.html', title='Antibody',
                            antibodies=antibodies, lotdict=lotdict, lots=lots,
                            userID=userID, email=email, loggedIn=loggedIn)
@@ -391,19 +396,8 @@ def get_picture_url(dbtype, item_id):
 @app.route('/cytotoxin/')
 def cytotoxin():
     """Define website's Cytotoxin page with both guest/ logged-in user access"""
-    # email, userID, loggedIn = None, None, False
-    # if 'email' in login_session:
-    #     email = login_session['email']
-    #     userID = getUserID(login_session['email'])
-    #     loggedIn = True
     (email, userID, loggedIn) = login_info(login_session)
-    cytotoxins = session.query(Cytotoxin).order_by(Cytotoxin.name).all()
-    lots = session.query(CytotoxinLot).all()
-    lotdict = {}
-    for x in range(1, session.query(Cytotoxin).count()+1):
-        lotdict[x] = (session.query(CytotoxinLot)
-                      .filter(CytotoxinLot.cytotoxin_id == x)
-                      .order_by(CytotoxinLot.date).all())
+    (cytotoxins, lotdict, lots) = set_category('cytotoxin')
     return render_template('cytotoxin.html', title='Cytotoxin',
                            cytotoxins=cytotoxins, lotdict=lotdict, lots=lots,
                            userID=userID, email=email, loggedIn=loggedIn)
@@ -412,19 +406,8 @@ def cytotoxin():
 @app.route('/adc/')
 def adc():
     """Define website's ADC page with both guest/ logged-in user access"""
-    email, userID, loggedIn = None, None, False
-    # if 'email' in login_session:
-    #     email = login_session['email']
-    #     userID = getUserID(login_session['email'])
-    #     loggedIn = True
     (email, userID, loggedIn) = login_info(login_session)
-    adcs = session.query(Adc).order_by(Adc.name).all()
-    lots = session.query(AdcLot).all()
-    lotdict = {}
-    for x in range(1, session.query(Adc).count()+1):
-        lotdict[x] = (session.query(AdcLot)
-                      .filter(AdcLot.adc_id == x)
-                      .order_by(AdcLot.date).all())
+    (adcs, lotdict, lots) = set_category('adc')
     return render_template('adc.html', title='ADC', adcs=adcs, lotdict=lotdict,
                            lots=lots, userID=userID, email=email,
                            loggedIn=loggedIn)
@@ -433,26 +416,34 @@ def adc():
 @app.route('/<dbtype>/create', methods=['GET', 'POST'])
 def createType(dbtype):
     """Create new category (within 3 pre-defined type) in the database"""
+    # check login status
     if 'email' not in login_session:
         flash('Sorry, the page you tried to access is for members only. '
               'Please sign in first.')
         return redirect(url_for(dbtype))
+
+    # get property names from table
     table = Table(dbtype, meta, autoload=True, autoload_with=engine)
     user_id = getUserID(login_session['email'])
+
     if request.method == 'POST':
+        # instantiate new object
         new = eval(dbtype.capitalize())()
         for field in request.form:
+            # set attribute of new object with request form data
             if hasattr(new, field):
                 setattr(new, field, request.form[field])
         setattr(new, 'user_id', user_id)
-
         session.add(new)
         session.commit()
         flash('%s Created' % dbtype.capitalize())
+
+        # upload image
         image = request.files['picture']
         if image and allowed_file(image.filename):
             with store_context(fs_store):
                 new.picture.from_file(image)
+        # prevent user uploading unsupported file type
         elif image and not allowed_file(image.filename):
             flash('Unsupported file detected. No image has been uploaded.')
         return redirect(url_for(dbtype))
@@ -464,10 +455,13 @@ def createType(dbtype):
 @app.route('/<dbtype>/<int:item_id>/create/', methods=['GET', 'POST'])
 def createTypeLot(dbtype, item_id):
     """Create new item within the category in the database"""
+    # check login status
     if 'email' not in login_session:
         flash('Sorry, the page you tried to access is for members only. '
               'Please sign in first.')
         return redirect(url_for(dbtype))
+
+    # get property names from table, check maximum lot# from ab and cytotoxin
     table = Table('%s_lot' % dbtype, meta, autoload=True, autoload_with=engine)
     maxablot = (session.query(AntibodyLot)
                 .order_by(desc(AntibodyLot.id)).first().id)
@@ -476,17 +470,22 @@ def createTypeLot(dbtype, item_id):
     originID = (session.query(eval(dbtype.capitalize()))
                 .filter_by(id=item_id).one().user_id)
     user_id = getUserID(login_session['email'])
+
     if request.method == 'POST':
+        # instantiate new object
         new = eval(dbtype.capitalize()+'Lot')()
         for field in request.form:
+            # set date attribute of new object with request form data
             if field == 'date':
                 try:
                     setattr(new, field, datetime.strptime(request.form[field].replace('-', ' '), '%Y %m %d'))
+                # in some cases users can input 6 digit year, catch this error
                 except ValueError as detail:
                     print 'Handling run-time error: ', detail
                     flash('Invalid date detected. Please type the date in '
                           'format: MM/DD/YYYY')
                     return redirect(url_for(dbtype))
+            # set attribute of new object with request form data
             if hasattr(new, field):
                 setattr(new, field, request.form[field])
         setattr(new, dbtype+'_id', item_id)
@@ -506,30 +505,41 @@ def createTypeLot(dbtype, item_id):
 @app.route('/<dbtype>/<int:item_id>/edit', methods=['GET', 'POST'])
 def editType(dbtype, item_id):
     """Edit the category (within 3 pre-defined type) in the database"""
+    # check login status
     if 'email' not in login_session:
         flash('Sorry, the page you tried to access is for members only. '
               'Please sign in first.')
         abort(401)
+
+    # query the item user wants to edit
     editedItem = (session.query(eval(dbtype.capitalize()))
                   .filter_by(id=item_id).one())
+    # make sure user is authorized to edit this item
     if login_session['user_id'] != editedItem.user_id:
         flash('You are not authorized to modify items you did not create. '
               'Please create your own item in order to modify it.')
         return redirect(url_for(dbtype))
+
+    # get property names from table
     table = Table(dbtype, meta, autoload=True, autoload_with=engine)
+
     if request.method == 'POST':
         for column in table.columns:
             if column.name in ('id', 'user_id'):
-                pass
+                pass  # don't modify item id# and user_id#
             else:
+                # set attribute of query object with request form data
                 setattr(editedItem, column.name, request.form[column.name])
         session.add(editedItem)
         session.commit()
         flash('%s Edited' % dbtype.capitalize())
+
+        # upload image
         image = request.files['picture']
         if image and allowed_file(image.filename):
             with store_context(fs_store):
                 editedItem.picture.from_file(image)
+        # prevent user uploading unsupported file type
         elif image and not allowed_file(image.filename):
             flash('Unsupported file detected. No image has been uploaded.')
         return redirect(url_for(dbtype))
@@ -542,24 +552,33 @@ def editType(dbtype, item_id):
 @app.route('/<dbtype>/lot/<int:item_id>/edit', methods=['GET', 'POST'])
 def editTypeLot(dbtype, item_id):
     """Edit item within the category in the database"""
+    # check login status
     if 'email' not in login_session:
         flash('Sorry, the page you tried to access is for members only. '
               'Please sign in first.')
         abort(401)
+
+    # query the item user wants to edit
     editedItem = (session.query(eval(dbtype.capitalize()+'Lot'))
                   .filter_by(id=item_id).one())
+    # make sure user is authorized to edit this item
     if login_session['user_id'] != editedItem.user_id:
         flash('You are not authorized to modify items you did not create. '
               'Please create your own item in order to modify it.')
         return redirect(url_for(dbtype))
+
+    # get property names from table, check maximum lot# from ab and cytotoxin
     table = Table('%s_lot' % dbtype, meta, autoload=True, autoload_with=engine)
     maxablot = (session.query(AntibodyLot)
                 .order_by(desc(AntibodyLot.id)).first().id)
     maxtoxinlot = (session.query(CytotoxinLot)
                    .order_by(desc(CytotoxinLot.id)).first().id)
+
     if request.method == 'POST':
+        # set date attribute of query object with request form data
         try:
             editedItem.date = (datetime.strptime(request.form['date'].replace('-', ' '), '%Y %m %d'))
+        # in some cases users can input 6 digit year, catch this error
         except ValueError as detail:
             print 'Handling run-time error: ', detail
             flash('Invalid date detected. Please type the date in '
@@ -568,7 +587,8 @@ def editTypeLot(dbtype, item_id):
         for column in table.columns:
             if column.name in ('id', 'date', 'antibody_id',
                                'cytotoxin_id', 'adc_id', 'user_id'):
-                pass
+                pass  # don't modify item identifier
+            # set attribute of query object with request form data
             else:
                 setattr(editedItem, column.name, request.form[column.name])
         session.add(editedItem)
@@ -585,20 +605,27 @@ def editTypeLot(dbtype, item_id):
 @app.route('/<dbtype>/<int:item_id>/delete/', methods=['GET', 'POST'])
 def delete(dbtype, item_id):
     """Delete either the item or category in the database"""
+    # check login status
     if 'email' not in login_session:
         flash('Sorry, the page you tried to access is for members only. '
               'Please sign in first.')
         abort(401)
+
+    # query the item user wants to delete
     deleteItem = (session.query(eval(dbtype[0].upper()+dbtype[1:]))
                   .filter_by(id=item_id).one())
+
+    # make sure user is authorized to delete this item
     if login_session['user_id'] != deleteItem.user_id:
         flash('You are not authorized to modify items you did not create. '
               'Please create your own item in order to modify it.')
         return redirect(url_for(dbtype))
+
     if request.method == 'POST':
         try:
             session.delete(deleteItem)
             session.commit()
+        # handling legacy error when delete invovled cascade-delete
         except IntegrityError as detail:
             print 'Handling run-time error: ', detail
             session.rollback()
@@ -630,42 +657,42 @@ def collectionLots(dbtype):
                            collections=collections)
 
 
-@app.route('/antibody/JSON')
+@app.route('/antibody/json')
 def antibodyJSON():
     """Create an JSON endpoint with all antibody categories"""
     antibodies = session.query(Antibody).all()
     return jsonify(Antibodies=[i.serialize for i in antibodies])
 
 
-@app.route('/cytotoxin/JSON')
+@app.route('/cytotoxin/json')
 def cytotoxinJSON():
     """Create an JSON endpoint with all cytotoxin categories"""
     cytotoxins = session.query(Cytotoxin).all()
     return jsonify(Cytotoxins=[i.serialize for i in cytotoxins])
 
 
-@app.route('/adc/JSON')
+@app.route('/adc/json')
 def adcJSON():
     """Create an JSON endpoint with all ADC categories"""
     adcs = session.query(Adc).all()
     return jsonify(Adcs=[i.serialize for i in adcs])
 
 
-@app.route('/antibody/lot/JSON')
+@app.route('/antibody/lot/json')
 def antibodyLotJSON():
     """Create an JSON endpoint with all items within the antibody categories"""
     lots = session.query(AntibodyLot).all()
     return jsonify(Antibody_Lots=[i.serialize for i in lots])
 
 
-@app.route('/cytotoxin/lot/JSON')
+@app.route('/cytotoxin/lot/json')
 def cytotoxinLotJSON():
     """Create an JSON endpoint with all items within the cytotoxin categories"""
     lots = session.query(CytotoxinLot).all()
     return jsonify(Cytotoxin_Lots=[i.serialize for i in lots])
 
 
-@app.route('/adc/lot/JSON')
+@app.route('/adc/lot/json')
 def adcLotJSON():
     """Create an JSON endpoint with all items within the ADC categories"""
     lots = session.query(AdcLot).all()
