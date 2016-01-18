@@ -5,6 +5,7 @@ import httplib2
 import json
 import requests
 from datetime import datetime
+from urllib2 import urlopen
 
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask import jsonify, send_from_directory, make_response, abort
@@ -20,10 +21,6 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy_imageattach.stores.fs import FileSystemStore
 from sqlalchemy_imageattach.context import store_context, push_store_context
 from sqlalchemy_imageattach.context import pop_store_context
-
-from urllib2 import urlopen
-
-from werkzeug import secure_filename
 
 from database_setup import Base, User, UserImg, Antibody, Cytotoxin
 from database_setup import AntibodyImg, AntibodyLot

@@ -11,20 +11,36 @@ The backend of this applicaion uses Postgres Database to organize users and all 
 - `populator.py` - Script used to populate the database with pred-defined users (including you!) and demo entries. You can modify the first user to yourself to simulate what it would look like to have several entries created by you in the application. (Instrution below)
 - `project.py` - The flask framework and its interface with the database (via ORM) and the html website template (via jinja2) are defined here. There are also some helper functions here to check file extensions and upload images to the application. `Populator.py` required some codes here to run.
 
+## Front End
+- [Bootstrap][4]
+- [sortable][5]
+- [jQuery][6]
+- [TWBScolor][7]
+
+## Back End
+- [python-flask][2]
+- [flask-seasurf][8]
+- [python-psycopg2][9]
+- [python-sqlalchemy][3]
+- [SQLAlchemy-ImageAttach][10]
+- [oauth2client][11]
+
 ## Endpoints
- - `/json`
- - `/xml`
+ - JSON
+  - Access this from `/category/json` or `/category/lot/json`, where category could be antibody, cytotoxin, or adc
+ - XML
+  - Access this from `/category/xml` or `/category/lot/xml`, where category could be antibody, cytotoxin, or adc
 
 ## Instructions
 - Clone this repository
-- Install [Vagrant][4] and [VirtualBox][5]
+- Install [Vagrant][12] and [VirtualBox][13]
 - Optional to test out Google Oauth 2.0 Login
-  - Create a new project from [Google Developers Console][6]. Go to API Manager -> Credentials in the Developers Console to create an OAuth client ID for web application use.
+  - Create a new project from [Google Developers Console][14]. Go to API Manager -> Credentials in the Developers Console to create an OAuth client ID for web application use.
   - Add `http://localhost:5000` under "Authorized Javascript origins"
   - Add `http://localhost:5000/gconnect`, `http://localhost:5000/login`, and `http://localhost:5000/oauth2callback` under "Authorized redirect URIs"
   - Either Download and rename the JSON file from Google or change the `client_id` in [client_secrets.json](client_secrets.json) provided to the one you obtained above.
 - Optional to test out Facebook Oauth 2.0 login
-  - Create a new application from [Facebook for Developers][7] for website. Go to your app dashboard to obtain your App ID and App Secret.
+  - Create a new application from [Facebook for Developers][15] for website. Go to your app dashboard to obtain your App ID and App Secret.
   - Change the `app_id` and `app_secret` in [fb_client_secrets.json](fb_client_secrets.json) with the one you obtained above.
 - Navigate to this directory in the terminal and enter `vagrant up` to initialize/power on the Vagrant virtual machine
 - Enter `vagrant ssh` to log into the virtual machine
@@ -32,15 +48,23 @@ The backend of this applicaion uses Postgres Database to organize users and all 
 - (optional) Modify line 153 of [vagrant/populator.py](populator.py) with your name, g-mail address, and a link of your profile picture
 - Run [vagrant/database_setup.py](database_setup.py) to initialize the catalog database
 - Run [vagrant/populator.py](populator.py) to populate database with pre-defined users and items
-- Run [vagrant/project.py](project.py) and navigate to [http://localhost:5000/][8] in your browser
+- Run [vagrant/project.py](project.py) and navigate to [http://localhost:5000/][16] in your browser
 - Sign in with your google account at top right corner of the website. Once signed in, you will be able to see what you can and cannot modify on the website
 - To test Facebook Sign in, either make sure your g-mail address is the same as your Facebook login or modify [vagrant/populator.py] (populator.py) with the proper credentials
 
 [1]: http://www.accessdata.fda.gov/scripts/cdrh/cfdocs/cfcfr/CFRSearch.cfm?CFRPart=11
 [2]: http://flask.pocoo.org/
 [3]: http://www.sqlalchemy.org/
-[4]: https://www.vagrantup.com/downloads.html
-[5]: https://www.virtualbox.org/wiki/Downloads
-[6]: https://console.developers.google.com/
-[7]: https://developers.facebook.com/
-[8]: http://localhost:5000/
+[4]: http://getbootstrap.com/
+[5]: http://github.hubspot.com/sortable/
+[6]: https://jquery.com/
+[7]: http://work.smarchal.com/twbscolor/
+[8]: https://flask-seasurf.readthedocs.org/en/latest/
+[9]: http://initd.org/psycopg/
+[10]: https://sqlalchemy-imageattach.readthedocs.org/en/0.9.0/
+[11]: https://pypi.python.org/pypi/oauth2client
+[12]: https://www.vagrantup.com/downloads.html
+[13]: https://www.virtualbox.org/wiki/Downloads
+[14]: https://console.developers.google.com/
+[15]: https://developers.facebook.com/
+[16]: http://localhost:5000/

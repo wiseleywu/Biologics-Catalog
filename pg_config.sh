@@ -15,7 +15,6 @@ pip install httplib2
 pip install redis
 pip install passlib
 pip install flask-httpauth
-pip install oauth2client
 pip install flask-seasurf
 
 vagrantTip="[35m[1mThe shared directory is located at /vagrant\nTo access your shared files: cd /vagrant(B[m"
