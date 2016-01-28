@@ -1,12 +1,19 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from database_setup import Base, User, UserImg, Antibody, Cytotoxin, AntibodyImg, AntibodyLot, CytotoxinImg, CytotoxinLot, Adc, AdcLot, AdcImg
+import datetime
+import os
+from random import randint, random, choice
+
 from sqlalchemy_imageattach.entity import Image, image_attachment
 from sqlalchemy_imageattach.context import store_context
-from random import randint
-from project import app, fs_store, session, attach_picture_url, attach_picture
-import datetime
-import random
+
+from database_setup import Base, User, Antibody, Cytotoxin, Adc
+from database_setup import AntibodyLot, CytotoxinLot, AdcLot
+from database_setup import UserImg, AntibodyImg, CytotoxinImg, AdcImg
+
+from helper import attach_picture, attach_picture_url
+
+from initDB import session
+
+from settings import app_path, fs_store
 
 
 def createRandomDate():
@@ -57,10 +64,10 @@ def createAntibodyLot():
     for x in range(20):
         antibodylot = AntibodyLot(
                       date=createRandomDate(),
-                      aggregate=randint(0, 5)+round(random.random(), 2),
-                      endotoxin=randint(0, 10)+round(random.random(), 2),
-                      concentration=randint(0, 10)+round(random.random(), 2),
-                      vialVolume=random.choice([1, 0.2, 0.5]),
+                      aggregate=randint(0, 5)+round(random(), 2),
+                      endotoxin=randint(0, 10)+round(random(), 2),
+                      concentration=randint(0, 10)+round(random(), 2),
+                      vialVolume=choice([1, 0.2, 0.5]),
                       vialNumber=randint(1, 100),
                       antibody_id=randint(1, 5),
                       user_id=randint(1, 3))
@@ -81,9 +88,9 @@ def createCytotoxin():
 def createCytotoxinLot():
     for x in range(20):
         cytotoxinlot = CytotoxinLot(date=createRandomDate(),
-                                    purity=randint(80, 99)+round(random.random(), 2),
-									concentration=randint(0,10)+round(random.random(), 2),
-									vialVolume=random.choice([1, 0.2, 0.5]),
+                                    purity=randint(80, 99)+round(random(), 2),
+									concentration=randint(0,10)+round(random(), 2),
+									vialVolume=choice([1, 0.2, 0.5]),
 									vialNumber=randint(1, 100),
 									cytotoxin_id=randint(1, 5),
 									user_id=randint(1, 3))
@@ -128,19 +135,19 @@ def createADCLot():
     for x in range(20):
         error = True
         while error:
-            randomlot = random.choice(lot)
+            randomlot = choice(lot)
             try:
-                id1 = random.choice(antibodylot()[randomlot-1])
-                id2 = random.choice(cytotoxinlot()[randomlot-1])
+                id1 = choice(antibodylot()[randomlot-1])
+                id2 = choice(cytotoxinlot()[randomlot-1])
             except IndexError:
                 lot.remove(randomlot)
             else:
 				error = False
 				adclot = AdcLot(date=createRandomDate(),
-					  aggregate=randint(0, 5)+round(random.random(), 2),
-					  endotoxin=randint(0, 10)+round(random.random(), 2),
-					  concentration=randint(0, 10)+round(random.random(), 2),
-					  vialVolume=random.choice([1, 0.2, 0.5]),
+					  aggregate=randint(0, 5)+round(random(), 2),
+					  endotoxin=randint(0, 10)+round(random(), 2),
+					  concentration=randint(0, 10)+round(random(), 2),
+					  vialVolume=choice([1, 0.2, 0.5]),
 					  vialNumber=randint(1, 100),
 					  adc_id=randomlot,
 					  antibodylot_id=id1,
@@ -150,17 +157,17 @@ def createADCLot():
         session.commit()
 
 if __name__ == '__main__':
-    createUser('Wiseley Wu', 'wiseleywu@gmail.com', 'https://lh6.googleusercontent.com/-45KCJFuShPk/AAAAAAAAAAI/AAAAAAAArRw/E7__AYvGSOQ/photo.jpg')
-    createUser('John Doe', 'john.doe@gmail.com', '/vagrant/static/images/user.png')
-    createUser('Jane Doe', 'jane.doe@gmail.com', '/vagrant/static/images/user.png')
-    createAntibody()
-    createAntibodyLot()
-    createCytotoxin()
-    createCytotoxinLot()
-    createADC()
-    createADCLot()
-    for x in range(1,6):
-        attach_picture(Antibody, x, '/vagrant/static/images/antibody.png')
-        attach_picture(Cytotoxin, x, '/vagrant/static/images/cytotoxin.png')
-        attach_picture(Adc, x, '/vagrant/static/images/adc.png')
-    print 'Database Populated'
+	createUser('Wiseley Wu', 'wiseleywu@gmail.com', 'https://lh6.googleusercontent.com/-45KCJFuShPk/AAAAAAAAAAI/AAAAAAAArRw/E7__AYvGSOQ/photo.jpg')
+	createUser('John Doe', 'john.doe@gmail.com', os.path.join(app_path, 'static/images/user.png'))
+	createUser('Jane Doe', 'jane.doe@gmail.com', os.path.join(app_path, 'static/images/user.png'))
+	createAntibody()
+	createAntibodyLot()
+	createCytotoxin()
+	createCytotoxinLot()
+	createADC()
+	createADCLot()
+	for x in range(1,6):
+	    attach_picture(Antibody, x, os.path.join(app_path, 'static/images/antibody.png'))
+	    attach_picture(Cytotoxin, x, os.path.join(app_path, 'static/images/cytotoxin.png'))
+	    attach_picture(Adc, x, os.path.join(app_path, 'static/images/adc.png'))
+	print 'Database Populated'

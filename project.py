@@ -8,52 +8,37 @@ from datetime import datetime
 from urllib2 import urlopen
 
 from flask import Flask, render_template, request, redirect, url_for, flash
-from flask import jsonify, send_from_directory, make_response, abort
+from flask import jsonify, make_response, abort
 from flask import session as login_session
 from flask.ext.seasurf import SeaSurf
 
 from oauth2client.client import flow_from_clientsecrets
 from oauth2client.client import FlowExchangeError
 
-from sqlalchemy import create_engine, MetaData, Table, desc
+from sqlalchemy import Table, desc
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy_imageattach.stores.fs import FileSystemStore
 from sqlalchemy_imageattach.context import store_context, push_store_context
 from sqlalchemy_imageattach.context import pop_store_context
 
-from database_setup import Base, User, UserImg, Antibody, Cytotoxin
-from database_setup import AntibodyImg, AntibodyLot
-from database_setup import CytotoxinImg, CytotoxinLot, Adc, AdcLot, AdcImg
+from database_setup import Base, User, Antibody, Cytotoxin, Adc
+from database_setup import AntibodyLot, CytotoxinLot, AdcLot
+from database_setup import UserImg, AntibodyImg, CytotoxinImg, AdcImg
+
+from helper import attach_picture, attach_picture_url, allowed_file
+from helper import createUser, getUserInfo, getUserID, login_info, set_category
+
+from initDB import engine, meta, session
+
+from settings import app_path, db_path, fs_store
+from settings import Google_Client_Secrets, Facebook_Client_Secrets
 
 # Global variables
 APPLICATION_NAME = "Biologics Catalog"
-ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif', 'bmp'])
 
 app = Flask(__name__)
+app.wsgi_app = fs_store.wsgi_middleware(app.wsgi_app)
 # Using SeaSurf, a flask extension, to implement protection against CSRF
 csrf = SeaSurf(app)
-
-# UPLOAD_FOLDER = '/uploads'
-# app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-# app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
-
-CLIENT_ID = json.loads(
-    open('client_secrets.json', 'r').read())['web']['client_id']
-
-# Location of where the pictures will be uploaded and their web url
-fs_store = FileSystemStore(
-    path='static/images/',
-    base_url='http://localhost:5000/static/images/')
-
-# Setting up postgres Database and SQL Alchemy's ORM
-engine = create_engine(
-    'postgresql://postgres:biologics@localhost/biologics-catalog')
-# engine = create_engine('sqlite:///biologicscatalog.db')
-Base.metadata.bind = engine
-meta = MetaData(bind=engine)
-DBSession = sessionmaker(bind=engine)
-session = DBSession()
 
 
 @app.route('/login')
@@ -81,7 +66,8 @@ def gconnect():
 
     try:
         # Upgrade the authorization code into a credentials object
-        oauth_flow = flow_from_clientsecrets('client_secrets.json', scope='')
+        oauth_flow = flow_from_clientsecrets(
+            os.path.join(app_path, 'client_secrets.json'), scope='')
         oauth_flow.redirect_uri = 'postmessage'
         credentials = oauth_flow.step2_exchange(code)
     except FlowExchangeError:
@@ -114,7 +100,7 @@ def gconnect():
         return response
 
     # Verify that the access token is valid for this app.
-    if result['issued_to'] != CLIENT_ID:
+    if result['issued_to'] != Google_Client_Secrets['web']['client_id']:
         response = make_response(
             json.dumps("Token's client ID does not match app's."), 401)
         response.headers['Content-Type'] = 'application/json'
@@ -173,10 +159,8 @@ def fbconnect():
     access_token = request.data
     print "access token received %s " % access_token
 
-    app_id = json.loads(open('fb_client_secrets.json', 'r').read())[
-        'web']['app_id']
-    app_secret = json.loads(
-        open('fb_client_secrets.json', 'r').read())['web']['app_secret']
+    app_id = Facebook_Client_Secrets['web']['app_id']
+    app_secret = Facebook_Client_Secrets['web']['app_secret']
     url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s' % (
         app_id, app_secret, access_token)
     h = httplib2.Http()
@@ -297,62 +281,6 @@ def disconnect():
     else:
         flash("You were not logged in")
         return redirect(url_for('home'))
-
-
-# User Helper Functions
-def createUser(login_session):
-    """Create a new user in the db using user info in the login_session"""
-    newUser = User(name=login_session['username'], email=login_session[
-                   'email'])
-    session.add(newUser)
-    session.commit()
-    user = session.query(User).filter_by(email=login_session['email']).one()
-    attach_picture_url(User, user.id, login_session['picture'])
-    return user.id
-
-
-def getUserInfo(user_id):
-    """Get user object in the db using its user_id"""
-    user = session.query(User).filter_by(id=user_id).one()
-    return user
-
-
-def getUserID(email):
-    """Get user's id in the db using its e-mail address"""
-    try:
-        user = session.query(User).filter_by(email=email).one()
-        return user.id
-    except:
-        return None
-
-
-def login_info(login_session):
-    """Provide login status to pass onto html templates"""
-    email, userID, loggedIn = None, None, False
-    if 'email' in login_session:
-        email = login_session['email']
-        userID = getUserID(login_session['email'])
-        loggedIn = True
-    return (email, userID, loggedIn)
-
-
-def set_category(dbtype):
-    """Provide category/item data to pass onto html templates"""
-    # define object and object lots
-    obj = eval(dbtype.capitalize())
-    items = eval(dbtype.capitalize()+'Lot')
-
-    # query the object items and object lots items
-    cat = session.query(obj).order_by(obj.name).all()
-    lots = session.query(items).all()
-
-    # create a dict to associate object id with its respective object lot items
-    lotdict = {}
-    for x in range(1, session.query(obj).count()+1):
-        lotdict[x] = (session.query(items)
-                      .filter(getattr(items, dbtype+'_id') == x)
-                      .order_by(items.date).all())
-    return (cat, lotdict, lots)
 
 
 @app.route('/')
@@ -719,61 +647,6 @@ def start_implicit_store_context():
 def stop_implicit_store_context(exception=None):
     pop_store_context()
 
-
-def allowed_file(filename):
-    """
-    Determine whether the uploaded file has an allowed file extension.
-    Arg:
-        filename: the uploaded file's name
-    Returns:
-        Boolean. True if the file extension is one of those listed under
-        ALLOWED_EXTENSIONS. False if otherwise.
-    """
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
-
-
-def attach_picture(table, item_id, location):
-    """
-    A helper function used in populator.py to upload picture to the db
-    Args:
-        table: The category which the picture belongs to
-        item_id: The category's id number which the picture should be
-                 uploaded to
-        location: local directory of where the picture is found
-    Returns:
-        None
-    """
-    try:
-        item = session.query(table).filter_by(id=item_id).one()
-        with store_context(fs_store):
-            with open(location, 'rb') as f:
-                item.picture.from_file(f)
-                session.commit()
-    except Exception:
-        session.rollback()
-        raise
-
-
-def attach_picture_url(table, item_id, location):
-    """
-    A helper function used in populator.py to upload picture to the db from web
-    Args:
-        table: The category which the picture belongs to
-        item_id: The category's id number which the picture should be
-                 uploaded to
-        location: a web url of where the picture is found
-    Returns:
-        None
-    """
-    try:
-        item = session.query(table).filter_by(id=item_id).one()
-        with store_context(fs_store):
-            item.picture.from_file(urlopen(location))
-            session.commit()
-    except Exception:
-        session.rollback()
-        raise
 
 if __name__ == '__main__':
     app.secret_key = 'super_secret_key'

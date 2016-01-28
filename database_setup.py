@@ -2,8 +2,10 @@ from sqlalchemy import Column, ForeignKey, Integer, String, Float, Date
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy_imageattach.entity import Image, image_attachment
 from sqlalchemy_imageattach.context import store_context
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import relationship
 from sqlalchemy import create_engine
+
+from settings import db_path
 
 Base = declarative_base()
 
@@ -202,7 +204,6 @@ class AdcImg(Base, Image):
     adc = relationship('Adc')
 
 # #########################insert at end of file ##############################
-engine = create_engine(
-    'postgresql://postgres:biologics@localhost/biologics-catalog')
+engine = create_engine(db_path)
 # engine = create_engine('sqlite:///biologicscatalog.db')
 Base.metadata.create_all(engine)
