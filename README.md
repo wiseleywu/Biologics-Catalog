@@ -7,9 +7,12 @@ Biologics Catalog is a web application built with [Flask][2]. It provides a list
 The backend of this applicaion uses Postgres Database to organize users and all the entries they have created. To interface between python and the database, [SQLAlchemy][3] and its Object Relational Mapper (ORM) is used to map python Classes to the database, allowing CRUD operations with simple python syntax instead of dense SQL commands. The application uses Oauth 2.0 to authenticate and authorize users via third party websites such as Google and Facebook; this enable new or returning users to login to the website securely without resorting to creating another new account and coming up with a complex password. User's credentials with Google/Facebook will be used to authenticate and authorize them when creating, updating, or deleting information from the web application. Biologics catalog also provides JSON and XML endpoints for sharing data with other websites.
 
 ## What's Included
-- `database_setup.py` - This file included codes to setup the database schema via SQLAlchemy's ORM. There's also implementation for the JSON API endpoint.
-- `populator.py` - Script used to populate the database with pred-defined users (including you!) and demo entries. You can modify the first user to yourself to simulate what it would look like to have several entries created by you in the application. (Instrution below)
-- `project.py` - The flask framework and its interface with the database (via ORM) and the html website template (via jinja2) are defined here. There are also some helper functions here to check file extensions and upload images to the application. `Populator.py` required some codes here to run.
+- `database_setup.py` - This file included codes to setup the database schema via SQLAlchemy's ORM. There's also implementation for the JSON API endpoint
+- `helper.py` - This file housed all the helper functions used by other files
+- `initDB.py` - This file setup postgres database and create a session with SQL Alchemy's ORM
+- `populator.py` - Script used to populate the database with pred-defined users (including you!) and demo entries. You can modify the first user to yourself to simulate what it would look like to have several entries created by you in the application (Instrution below)
+- `project.py` - The flask framework and its interface with the database (via ORM) and the html website template (via jinja2) are defined here
+- `settings.py` - This file housed general settings for the web app, such as global constants, absolute path for storage/upload, credentials for postgres database, and OAuth objects from Google/Facebook
 
 ## Front End
 - [Bootstrap][4]
@@ -45,8 +48,8 @@ The backend of this applicaion uses Postgres Database to organize users and all 
 - Navigate to this directory in the terminal and enter `vagrant up` to initialize/power on the Vagrant virtual machine
 - Enter `vagrant ssh` to log into the virtual machine
 - Navigate to vagrant directory within the virtual machine by typing `cd /vagrant`
-- (optional) Modify line 153 of [vagrant/populator.py](populator.py) with your name, g-mail address, and a link of your profile picture
-- Run [vagrant/database_setup.py](database_setup.py) to initialize the catalog database
+- (optional) Create a new user using `createUser()` in [vagrant/populator.py](populator.py) with your name, g-mail address, and a link of your profile picture
+- (optional) Change absolute path on server or postgres database credentials in [vagrant/settings.py](settings.py) if needed
 - Run [vagrant/populator.py](populator.py) to populate database with pre-defined users and items
 - Run [vagrant/project.py](project.py) and navigate to [http://localhost:5000/][16] in your browser
 - Sign in with your google account at top right corner of the website. Once signed in, you will be able to see what you can and cannot modify on the website
