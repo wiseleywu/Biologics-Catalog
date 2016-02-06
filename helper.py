@@ -10,12 +10,14 @@ from database_setup import UserImg, AntibodyImg, CytotoxinImg, AdcImg
 
 from settings import fs_store, ALLOWED_EXTENSIONS
 
-from initDB import session
+from init_db import session
 
 
 # User Helper Functions
 def createUser(login_session):
-    """Create a new user in the db using user info in the login_session"""
+    """
+    Create a new user in the db using user info in the login_session
+    """
     newUser = User(name=login_session['username'], email=login_session[
                    'email'])
     session.add(newUser)
@@ -106,7 +108,8 @@ def attach_picture(table, item_id, location):
 
 def attach_picture_url(table, item_id, location):
     """
-    A helper function used in populator.py to upload picture to the db from web
+    A helper function used in populator.py to upload picture to the db
+    from web
     Args:
         table: The category which the picture belongs to
         item_id: The category's id number which the picture should be

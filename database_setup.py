@@ -42,12 +42,12 @@ class Antibody(Base):
         except IOError:
             url = ''
         return {
-            "Antibody_Id": self.id,
-            "Antibody_Name": self.name,
-            "Molecular_Weight": self.weight,
-            "Target": self.target,
-            "Picture_Url": url,
-            "User_Id": self.user_id
+            "antibody_id": self.id,
+            "antibody_name": self.name,
+            "molecular_weight": self.weight,
+            "target": self.target,
+            "picture_url": url,
+            "user_id": self.user_id
         }
 
 
@@ -74,15 +74,15 @@ class AntibodyLot(Base):
     @property
     def serialize(self):
         return {
-            "Lot_Number": self.id,
-            "Manufactured_Date": str(self.date),
-            "Aggregate_Percent": self.aggregate,
-            "Endotoxin_EU_per_mg": self.endotoxin,
-            "Concentration_mg_per_ml": self.concentration,
-            "Vial_Volume_ml": self.vialVolume,
-            "Available_Vials": self.vialNumber,
-            "Antibody_Id": self.antibody_id,
-            "User_Id": self.user_id
+            "lot_number": self.id,
+            "manufactured_date": str(self.date),
+            "aggregate_percent": self.aggregate,
+            "endotoxin_EU_per_mg": self.endotoxin,
+            "concentration_mg_per_ml": self.concentration,
+            "vial_volume_ml": self.vialVolume,
+            "available_vials": self.vialNumber,
+            "antibody_id": self.antibody_id,
+            "user_id": self.user_id
         }
 
 
@@ -100,17 +100,19 @@ class Cytotoxin(Base):
     @property
     def serialize(self):
         return {
-            'Cytotoxin_Id': self.id,
-            'Molecular_Weight': self.weight,
-            'Drug_Class': self.drugClass,
-            'Picture_Url': self.picture.locate(),
-            'User_Id': self.user_id
+            'cytotoxin_id': self.id,
+            'molecular_weight': self.weight,
+            'drug_class': self.drugClass,
+            'picture_url': self.picture.locate(),
+            'user_id': self.user_id
         }
 
 
 class CytotoxinImg(Base, Image):
     __tablename__ = 'cytotoxin_img'
-    cytotoxin_id = Column(Integer, ForeignKey('cytotoxin.id'), primary_key=True)
+    cytotoxin_id = Column(Integer,
+                          ForeignKey('cytotoxin.id'),
+                          primary_key=True)
     cytotoxin = relationship('Cytotoxin')
 
 
@@ -130,14 +132,14 @@ class CytotoxinLot(Base):
     @property
     def serialize(self):
         return {
-            'Lot_Number': self.id,
-            'Manufactured_Date': str(self.date),
-            'Purity_Percent': self.purity,
-            'Concentration_mg_per_ml': self.concentration,
-            'Vial_Volume_ml': self.vialVolume,
-            'Available_Vials': self.vialNumber,
-            'Cytotoxin_Id': self.cytotoxin_id,
-            'User_Id': self.user_id
+            'lot_number': self.id,
+            'manufactured_date': str(self.date),
+            'purity_percent': self.purity,
+            'concentration_mg_per_ml': self.concentration,
+            'vial_volume_ml': self.vialVolume,
+            'available_vials': self.vialNumber,
+            'cytotoxin_id': self.cytotoxin_id,
+            'user_id': self.user_id
         }
 
 
@@ -154,10 +156,10 @@ class Adc(Base):
     @property
     def serialize(self):
         return {
-            'Adc_Id': self.id,
-            'Conjugation_Chemistry': self.chemistry,
-            'Picture_Url': self.picture.locate(),
-            'User_Id': self.user_id
+            'adc_id': self.id,
+            'conjugation_chemistry': self.chemistry,
+            'picture_url': self.picture.locate(),
+            'user_id': self.user_id
         }
 
 
@@ -176,7 +178,8 @@ class AdcLot(Base):
                             ForeignKey('antibody_lot.id', ondelete='cascade'))
     antibodylot = relationship(AntibodyLot)
     cytotoxinlot_id = Column(Integer,
-                             ForeignKey('cytotoxin_lot.id', ondelete='cascade'))
+                             ForeignKey('cytotoxin_lot.id',
+                                        ondelete='cascade'))
     cytotoxinlot = relationship(CytotoxinLot)
     user_id = Column(Integer, ForeignKey('user.id'))
     user = relationship(User)
@@ -184,17 +187,17 @@ class AdcLot(Base):
     @property
     def serialize(self):
         return {
-            'Lot_Number': self.id,
-            'Manufactured_Date': str(self.date),
-            'Aggregate_Percent': self.aggregate,
-            'Endotoxin_EU_per_mg': self.endotoxin,
+            'lot_number': self.id,
+            'manufactured_date': str(self.date),
+            'aggregate_percent': self.aggregate,
+            'endotoxin_EU_per_mg': self.endotoxin,
             'Concentration_mg_per_ml': self.concentration,
-            'Vial_Volume_ml': self.vialVolume,
-            'Available_Vials': self.vialNumber,
-            'Antibody_Lot_Id': self.antibodylot_id,
-            'Cytotoxin_Lot_Id': self.cytotoxinlot_id,
-            'Adc_Id': self.adc_id,
-            'User_Id': self.user_id
+            'vial_volume_ml': self.vialVolume,
+            'available_vials': self.vialNumber,
+            'antibody_lot_id': self.antibodylot_id,
+            'cytotoxin_lot_id': self.cytotoxinlot_id,
+            'adc_id': self.adc_id,
+            'user_id': self.user_id
         }
 
 

@@ -11,7 +11,7 @@ from database_setup import UserImg, AntibodyImg, CytotoxinImg, AdcImg
 
 from helper import attach_picture, attach_picture_url
 
-from initDB import session
+from init_db import session
 
 from settings import app_path, fs_store
 

@@ -5,7 +5,6 @@ import httplib2
 import json
 import requests
 from datetime import datetime
-from urllib2 import urlopen
 
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask import jsonify, make_response, abort
@@ -24,12 +23,12 @@ from database_setup import Base, User, Antibody, Cytotoxin, Adc
 from database_setup import AntibodyLot, CytotoxinLot, AdcLot
 from database_setup import UserImg, AntibodyImg, CytotoxinImg, AdcImg
 
-from helper import attach_picture, attach_picture_url, allowed_file
-from helper import createUser, getUserInfo, getUserID, login_info, set_category
+from helper import allowed_file
+from helper import createUser, getUserID, login_info, set_category
 
-from initDB import engine, meta, session
+from init_db import engine, meta, session
 
-from settings import app_path, db_path, fs_store
+from settings import app_path, fs_store
 from settings import Google_Client_Secrets, Facebook_Client_Secrets
 
 # Global variables
@@ -167,13 +166,14 @@ def fbconnect():
     result = h.request(url, 'GET')[1]
 
     # Use token to get user info from API
-    userinfo_url = "https://graph.facebook.com/v2.5/me"
+    # userinfo_url = "https://graph.facebook.com/v2.5/me"
     # strip expire tag from access token
     token = result.split("&")[0]
 
     url = 'https://graph.facebook.com/v2.5/me?%s&fields=name,id,email' % token
     h = httplib2.Http()
     result = h.request(url, 'GET')[1]
+    print result
     # print "url sent for API access:%s"% url
     # print "API JSON result: %s" % result
     data = json.loads(result)
@@ -182,7 +182,7 @@ def fbconnect():
     login_session['email'] = data["email"]
     login_session['facebook_id'] = data["id"]
 
-    # The token must be stored in the login_session in order to properly logout,
+    # The token must be stored in login_session in order to properly logout
     # let's strip out the information before the equals sign in our token
     stored_token = token.split("=")[1]
     login_session['access_token'] = stored_token
@@ -252,9 +252,12 @@ def fbdisconnect():
     facebook_id = login_session['facebook_id']
     # The access token must me included to successfully logout
     access_token = login_session['access_token']
-    url = 'https://graph.facebook.com/%s/permissions?access_token=%s' % (facebook_id, access_token)
+    url = 'https://graph.facebook.com/%s/permissions?access_token=%s' % (
+                                                facebook_id,
+                                                access_token)
     h = httplib2.Http()
     result = h.request(url, 'DELETE')[1]
+    print result
     return "you have been logged out"
 
 
@@ -262,8 +265,9 @@ def fbdisconnect():
 @csrf.exempt
 @app.route('/disconnect')
 def disconnect():
-    """Disconnect User's Google/Facebook account and delete any remaining
-       user info
+    """
+    Disconnect User's Google/Facebook account and delete any
+    remaining user info
     """
     if 'provider' in login_session:
         if login_session['provider'] == 'google':
@@ -286,7 +290,10 @@ def disconnect():
 @app.route('/')
 @app.route('/home')
 def home():
-    """Define website's homepage with both guest/ logged-in user access"""
+    """
+    Define website's homepage with both guest/ logged-in user
+    access
+    """
     (email, userID, loggedIn) = login_info(login_session)
     return render_template('home.html', title='Home',
                            email=email, loggedIn=loggedIn)
@@ -294,7 +301,10 @@ def home():
 
 @app.route('/antibody/')
 def antibody():
-    """Define website's Antibody page with both guest/ logged-in user access"""
+    """
+    Define website's Antibody page with both guest/ logged-in
+    user access
+    """
     (email, userID, loggedIn) = login_info(login_session)
     (antibodies, lotdict, lots) = set_category('antibody')
     return render_template('antibody.html', title='Antibody',
@@ -304,8 +314,9 @@ def antibody():
 
 @app.route('/<dbtype>/img/<int:item_id>/')
 def get_picture_url(dbtype, item_id):
-    """Redirect stored image url within the db to an organized url for
-       Antibody/Cytotoxin/Adc.html to access
+    """
+    Redirect stored image url within the db to an organized url for
+    Antibody/Cytotoxin/Adc.html to access
     """
     item = session.query(eval(dbtype.capitalize())).filter_by(id=item_id).one()
     with store_context(fs_store):
@@ -320,7 +331,10 @@ def get_picture_url(dbtype, item_id):
 
 @app.route('/cytotoxin/')
 def cytotoxin():
-    """Define website's Cytotoxin page with both guest/ logged-in user access"""
+    """
+    Define website's Cytotoxin page with both guest/ logged-in user
+    access
+    """
     (email, userID, loggedIn) = login_info(login_session)
     (cytotoxins, lotdict, lots) = set_category('cytotoxin')
     return render_template('cytotoxin.html', title='Cytotoxin',
@@ -330,7 +344,10 @@ def cytotoxin():
 
 @app.route('/adc/')
 def adc():
-    """Define website's ADC page with both guest/ logged-in user access"""
+    """
+    Define website's ADC page with both guest/ logged-in user
+    access
+    """
     (email, userID, loggedIn) = login_info(login_session)
     (adcs, lotdict, lots) = set_category('adc')
     return render_template('adc.html', title='ADC', adcs=adcs, lotdict=lotdict,
@@ -340,7 +357,9 @@ def adc():
 
 @app.route('/<dbtype>/create', methods=['GET', 'POST'])
 def createType(dbtype):
-    """Create new category (within 3 pre-defined type) in the database"""
+    """
+    Create new category (within 3 pre-defined type) in the database
+    """
     # check login status
     if 'email' not in login_session:
         flash('Sorry, the page you tried to access is for members only. '
@@ -403,7 +422,12 @@ def createTypeLot(dbtype, item_id):
             # set date attribute of new object with request form data
             if field == 'date':
                 try:
-                    setattr(new, field, datetime.strptime(request.form[field].replace('-', ' '), '%Y %m %d'))
+                    setattr(new,
+                            field,
+                            (datetime
+                             .strptime(request
+                                       .form[field]
+                                       .replace('-', ' '), '%Y %m %d')))
                 # in some cases users can input 6 digit year, catch this error
                 except ValueError as detail:
                     print 'Handling run-time error: ', detail
@@ -502,7 +526,10 @@ def editTypeLot(dbtype, item_id):
     if request.method == 'POST':
         # set date attribute of query object with request form data
         try:
-            editedItem.date = (datetime.strptime(request.form['date'].replace('-', ' '), '%Y %m %d'))
+            editedItem.date = (datetime
+                               .strptime(request
+                                         .form['date']
+                                         .replace('-', ' '), '%Y %m %d'))
         # in some cases users can input 6 digit year, catch this error
         except ValueError as detail:
             print 'Handling run-time error: ', detail
@@ -576,7 +603,10 @@ def collections(dbtype):
 
 @app.route('/<dbtype>/lot/xml')
 def collectionLots(dbtype):
-    """Create an XML endpoint with all items within the categories available"""
+    """
+    Create an XML endpoint with all items within the categories
+    available
+    """
     collections = session.query(eval(dbtype.capitalize()+'Lot')).all()
     return render_template('collections-lot.xml', dbtype=dbtype,
                            collections=collections)
@@ -605,35 +635,47 @@ def adcJSON():
 
 @app.route('/antibody/lot/json')
 def antibodyLotJSON():
-    """Create an JSON endpoint with all items within the antibody categories"""
+    """
+    Create an JSON endpoint with all items within the antibody
+    categories
+    """
     lots = session.query(AntibodyLot).all()
     return jsonify(Antibody_Lots=[i.serialize for i in lots])
 
 
 @app.route('/cytotoxin/lot/json')
 def cytotoxinLotJSON():
-    """Create an JSON endpoint with all items within the cytotoxin categories"""
+    """
+    Create an JSON endpoint with all items within the cytotoxin
+    categories
+    """
     lots = session.query(CytotoxinLot).all()
     return jsonify(Cytotoxin_Lots=[i.serialize for i in lots])
 
 
 @app.route('/adc/lot/json')
 def adcLotJSON():
-    """Create an JSON endpoint with all items within the ADC categories"""
+    """
+    Create an JSON endpoint with all items within the ADC categories
+    """
     lots = session.query(AdcLot).all()
     return jsonify(Adc_Lots=[i.serialize for i in lots])
 
 
 @app.errorhandler(401)
 def access_denied(e):
-    """Render a 401 error page when user tries to perform unauthorized access"""
+    """
+    Render a 401 error page when user tries to perform unauthorized
+    access
+    """
     return render_template('401.html'), 401
 
 
 @app.errorhandler(404)
 def page_not_found(e):
     """
-    Render a 404 error page when user tries to access page that doesn't exist
+    Render a 404 error page when user tries to access page that doesn't
+    exist
     """
     return render_template('404.html'), 404
 
