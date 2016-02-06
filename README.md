@@ -4,7 +4,7 @@ A web application that serves as a catalog for antibody, cytotoxin, and antibody
 ## Overview
 Biologics Catalog is a web application built with [Flask][2]. It provides a list of items within a variety of categories as well as provide a user registration and authentication system. Registered users will have the ability to post, edit and delete their own items.
 
-The backend of this application uses Postgres Database to organize users and all the entries they have created. To interface between python and the database, [SQLAlchemy][3] and its Object Relational Mapper (ORM) is used to map python Classes to the database, allowing CRUD operations with simple python syntax instead of dense SQL commands. The application uses Oauth 2.0 to authenticate and authorize users via third party websites such as Google and Facebook; this enable new or returning users to login to the website securely without resorting to creating another new account and coming up with a complex password. User's credentials with Google/Facebook will be used to authenticate and authorize them when creating, updating, or deleting information from the web application. Biologics catalog also provides JSON and XML endpoints for sharing data with other websites.
+The backend of this application uses Postgres Database to organize users and all the entries they have created. To interface between Python and the database, [SQLAlchemy][3] and its Object Relational Mapper (ORM) is used to map Python Classes to the database, allowing CRUD operations with simple Python syntax instead of dense SQL commands. The application uses Oauth 2.0 to authenticate and authorize users via third party websites such as Google and Facebook; this enable new or returning users to login to the website securely without resorting to creating another new account and coming up with a complex password. User's credentials with Google/Facebook will be used to authenticate and authorize them when creating, updating, or deleting information from the web application. Biologics catalog also provides JSON and XML endpoints for sharing data with other websites.
 
 ## What's Included
 - `database_setup.py` - This file included codes to setup the database schema via SQLAlchemy's ORM. There's also implementation for the JSON API endpoint
@@ -38,13 +38,13 @@ The backend of this application uses Postgres Database to organize users and all
 - Clone this repository
 - Install [Vagrant][12] and [VirtualBox][13]
 - Optional to test out Google Oauth 2.0 Login
-  - Create a new project from [Google Developers Console][14]. Go to API Manager -> Credentials in the Developers Console to create an OAuth client ID for web application use.
+  - Create a new project from [Google Developers Console][14]. Go to API Manager -> Credentials in the Developers Console to create an OAuth client ID for web application use
   - Add `http://localhost:5000` under "Authorized Javascript origins"
   - Add `http://localhost:5000/gconnect`, `http://localhost:5000/login`, and `http://localhost:5000/oauth2callback` under "Authorized redirect URIs"
-  - Either Download and rename the JSON file from Google or change the `client_id` in [client_secrets.json](client_secrets.json) provided to the one you obtained above.
+  - Download and rename the JSON file to `client_secrets.json` and place it in the repo
 - Optional to test out Facebook Oauth 2.0 login
   - Create a new application from [Facebook for Developers][15] for website. Go to your app dashboard to obtain your App ID and App Secret.
-  - Change the `app_id` and `app_secret` in [fb_client_secrets.json](fb_client_secrets.json) with the one you obtained above.
+  - Create a new JSON file in the repo called `fb_client_secrets.json` with the following structure: `{"web":{"app_id":123456789,"app_secret":"string"}}`, where you replace the app_id and app_secret with the values you obtained above
 - Navigate to this directory in the terminal and enter `vagrant up` to initialize/power on the Vagrant virtual machine
 - Enter `vagrant ssh` to log into the virtual machine
 - Navigate to vagrant directory within the virtual machine by typing `cd /vagrant`
