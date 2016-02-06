@@ -20,15 +20,15 @@
     <ul>
       <h3><li><a href="#{{cytotoxin.name}}">{{cytotoxin.name}}</a></li></h3>
       <button type="button" class="btn btn-info" data-toggle="modal" data-target="#imgToxin{{ cytotoxin.id }}" href="{{ url_for('get_picture_url',item_id=cytotoxin.id, dbtype='cytotoxin') }}">Molecular Structure</button>
-      {% if loggedIn and userID==cytotoxin.user_id %}
-      <button type="button" class="btn btn-warning" data-toggle="modal" data-target="#editToxin{{ cytotoxin.id }}" href="{{url_for('editType', dbtype='cytotoxin', item_id=cytotoxin.id)}}">Edit</button>
+      {% if logged_in and user_id==cytotoxin.user_id %}
+      <button type="button" class="btn btn-warning" data-toggle="modal" data-target="#editToxin{{ cytotoxin.id }}" href="{{url_for('edit_type', dbtype='cytotoxin', item_id=cytotoxin.id)}}">Edit</button>
       <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteToxin{{ cytotoxin.id }}">Delete</button>
       {% else %}
       {% endif %}
     </ul>
     {% endfor %}
-    {% if loggedIn %}
-    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#create-cytotixn" href="{{url_for('createType',dbtype='cytotoxin')}}">Add New Cytotoxin</button>
+    {% if logged_in %}
+    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#create-cytotixn" href="{{url_for('create_type',dbtype='cytotoxin')}}">Add New Cytotoxin</button>
     {% else %}
     {% endif %}
   </div>
@@ -47,7 +47,7 @@
             <th>Concentration (mM)</th>
             <th>Vial Volume (mL)</th>
             <th>Available Vials</th>
-            {% if loggedIn %}
+            {% if logged_in %}
             <th data-sortable="false">Edit</th>
             <th data-sortable="false">Delete</th>
             {% else %}
@@ -55,16 +55,16 @@
           </tr>
         </thead>
         <tbody>
-          {% for lot in lotdict[cytotoxin.id] %}
+          {% for lot in lot_dict[cytotoxin.id] %}
           <tr>
             <td>{{lot.date}}</td>
             <td>{{lot.id}}</td>
             <td>{{lot.purity}}</td>
             <td>{{lot.concentration}}</td>
-            <td>{{lot.vialVolume}}</td>
-            <td>{{lot.vialNumber}}</td>
-            {% if loggedIn and userID==lot.user_id %}
-            <td><button type="button" class="btn btn-warning" data-toggle="modal" data-target="#edit{{ lot.id }}" href="{{url_for('editTypeLot', dbtype='cytotoxin', item_id=lot.id)}}">Edit</button></td>
+            <td>{{lot.vial_volume}}</td>
+            <td>{{lot.vial_number}}</td>
+            {% if logged_in and user_id==lot.user_id %}
+            <td><button type="button" class="btn btn-warning" data-toggle="modal" data-target="#edit{{ lot.id }}" href="{{url_for('edit_type_lot', dbtype='cytotoxin', item_id=lot.id)}}">Edit</button></td>
             <td><button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteLot{{ lot.id }}">Delete</button></td>
             {% else %}
             {% endif %}
@@ -73,8 +73,8 @@
           </tr>
         </tbody>
       </table>
-    {% if loggedIn %}
-    <td><button type="button" class="btn btn-primary" data-toggle="modal" data-target="#create-lot{{cytotoxin.id}}" href="{{url_for('createTypeLot', dbtype='cytotoxin', item_id=cytotoxin.id)}}">Create New Lot</button></td>
+    {% if logged_in %}
+    <td><button type="button" class="btn btn-primary" data-toggle="modal" data-target="#create-lot{{cytotoxin.id}}" href="{{url_for('create_type_lot', dbtype='cytotoxin', item_id=cytotoxin.id)}}">Create New Lot</button></td>
     {% else %}
     {% endif %}
     </div>

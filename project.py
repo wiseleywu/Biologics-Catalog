@@ -24,12 +24,12 @@ from database_setup import AntibodyLot, CytotoxinLot, AdcLot
 from database_setup import UserImg, AntibodyImg, CytotoxinImg, AdcImg
 
 from helper import allowed_file
-from helper import createUser, getUserID, login_info, set_category
+from helper import create_user, get_user_id, login_info, set_category
 
 from init_db import engine, meta, session
 
 from settings import app_path, fs_store
-from settings import Google_Client_Secrets, Facebook_Client_Secrets
+from settings import google_client_secrets, facebook_client_secrets
 
 # Global variables
 APPLICATION_NAME = "Biologics Catalog"
@@ -41,7 +41,7 @@ csrf = SeaSurf(app)
 
 
 @app.route('/login')
-def showLogin():
+def show_login():
     """Create anti-forgery state token for the login session."""
     state = ''.join(
         random.choice(string.ascii_uppercase + string.digits)
@@ -52,7 +52,7 @@ def showLogin():
 
 @csrf.exempt
 @app.route('/gconnect', methods=['POST'])
-def gconnect():
+def google_login():
     """Implement Oauth 2.0 login method with user's Google account"""
     # Validate state token
     if request.args.get('state') != login_session['state']:
@@ -99,7 +99,7 @@ def gconnect():
         return response
 
     # Verify that the access token is valid for this app.
-    if result['issued_to'] != Google_Client_Secrets['web']['client_id']:
+    if result['issued_to'] != google_client_secrets['web']['client_id']:
         response = make_response(
             json.dumps("Token's client ID does not match app's."), 401)
         response.headers['Content-Type'] = 'application/json'
@@ -131,9 +131,9 @@ def gconnect():
     login_session['provider'] = 'google'
 
     # see if user exists, if it doesn't make a new one
-    user_id = getUserID(login_session['email'])
+    user_id = get_user_id(login_session['email'])
     if not user_id:
-        user_id = createUser(login_session)
+        user_id = create_user(login_session)
     login_session['user_id'] = user_id
 
     output = ''
@@ -149,7 +149,7 @@ def gconnect():
 
 @csrf.exempt
 @app.route('/fbconnect', methods=['POST'])
-def fbconnect():
+def facebook_login():
     """Implement Oauth 2.0 login method with user's Facebook account"""
     if request.args.get('state') != login_session['state']:
         response = make_response(json.dumps('Invalid state parameter.'), 401)
@@ -158,8 +158,8 @@ def fbconnect():
     access_token = request.data
     print "access token received %s " % access_token
 
-    app_id = Facebook_Client_Secrets['web']['app_id']
-    app_secret = Facebook_Client_Secrets['web']['app_secret']
+    app_id = facebook_client_secrets['web']['app_id']
+    app_secret = facebook_client_secrets['web']['app_secret']
     url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=%s&client_secret=%s&fb_exchange_token=%s' % (
         app_id, app_secret, access_token)
     h = httplib2.Http()
@@ -196,9 +196,9 @@ def fbconnect():
     login_session['picture'] = data["data"]["url"]
 
     # see if user exists
-    user_id = getUserID(login_session['email'])
+    user_id = get_user_id(login_session['email'])
     if not user_id:
-        user_id = createUser(login_session)
+        user_id = create_user(login_session)
     login_session['user_id'] = user_id
 
     output = ''
@@ -217,7 +217,7 @@ def fbconnect():
 # DISCONNECT - Revoke a current user's token and reset their login_session
 @csrf.exempt
 @app.route('/gdisconnect')
-def gdisconnect():
+def google_logout():
     """Disconnect user's Google account"""
     # Only disconnect a connected user.
     access_token = login_session.get('access_token')
@@ -247,7 +247,7 @@ def gdisconnect():
 
 @csrf.exempt
 @app.route('/fbdisconnect')
-def fbdisconnect():
+def facebook_logout():
     """Disconnect user's Facebook account"""
     facebook_id = login_session['facebook_id']
     # The access token must me included to successfully logout
@@ -264,16 +264,16 @@ def fbdisconnect():
 # Disconnect based on provider
 @csrf.exempt
 @app.route('/disconnect')
-def disconnect():
+def logout():
     """
     Disconnect User's Google/Facebook account and delete any
     remaining user info
     """
     if 'provider' in login_session:
         if login_session['provider'] == 'google':
-            gdisconnect()
+            google_logout()
         if login_session['provider'] == 'facebook':
-            fbdisconnect()
+            facebook_logout()
             del login_session['facebook_id']
         del login_session['username']
         del login_session['email']
@@ -294,9 +294,9 @@ def home():
     Define website's homepage with both guest/ logged-in user
     access
     """
-    (email, userID, loggedIn) = login_info(login_session)
+    (email, user_id, logged_in) = login_info(login_session)
     return render_template('home.html', title='Home',
-                           email=email, loggedIn=loggedIn)
+                           email=email, logged_in=logged_in)
 
 
 @app.route('/antibody/')
@@ -305,11 +305,11 @@ def antibody():
     Define website's Antibody page with both guest/ logged-in
     user access
     """
-    (email, userID, loggedIn) = login_info(login_session)
-    (antibodies, lotdict, lots) = set_category('antibody')
+    (email, user_id, logged_in) = login_info(login_session)
+    (antibodies, lot_dict, lots) = set_category('antibody')
     return render_template('antibody.html', title='Antibody',
-                           antibodies=antibodies, lotdict=lotdict, lots=lots,
-                           userID=userID, email=email, loggedIn=loggedIn)
+                           antibodies=antibodies, lot_dict=lot_dict, lots=lots,
+                           user_id=user_id, email=email, logged_in=logged_in)
 
 
 @app.route('/<dbtype>/img/<int:item_id>/')
@@ -335,11 +335,11 @@ def cytotoxin():
     Define website's Cytotoxin page with both guest/ logged-in user
     access
     """
-    (email, userID, loggedIn) = login_info(login_session)
-    (cytotoxins, lotdict, lots) = set_category('cytotoxin')
+    (email, user_id, logged_in) = login_info(login_session)
+    (cytotoxins, lot_dict, lots) = set_category('cytotoxin')
     return render_template('cytotoxin.html', title='Cytotoxin',
-                           cytotoxins=cytotoxins, lotdict=lotdict, lots=lots,
-                           userID=userID, email=email, loggedIn=loggedIn)
+                           cytotoxins=cytotoxins, lot_dict=lot_dict, lots=lots,
+                           user_id=user_id, email=email, logged_in=logged_in)
 
 
 @app.route('/adc/')
@@ -348,15 +348,15 @@ def adc():
     Define website's ADC page with both guest/ logged-in user
     access
     """
-    (email, userID, loggedIn) = login_info(login_session)
-    (adcs, lotdict, lots) = set_category('adc')
-    return render_template('adc.html', title='ADC', adcs=adcs, lotdict=lotdict,
-                           lots=lots, userID=userID, email=email,
-                           loggedIn=loggedIn)
+    (email, user_id, logged_in) = login_info(login_session)
+    (adcs, lot_dict, lots) = set_category('adc')
+    return render_template('adc.html', title='ADC', adcs=adcs,
+                           lot_dict=lot_dict, lots=lots, user_id=user_id,
+                           email=email, logged_in=logged_in)
 
 
 @app.route('/<dbtype>/create', methods=['GET', 'POST'])
-def createType(dbtype):
+def create_type(dbtype):
     """
     Create new category (within 3 pre-defined type) in the database
     """
@@ -368,7 +368,7 @@ def createType(dbtype):
 
     # get property names from table
     table = Table(dbtype, meta, autoload=True, autoload_with=engine)
-    user_id = getUserID(login_session['email'])
+    user_id = get_user_id(login_session['email'])
 
     if request.method == 'POST':
         # instantiate new object
@@ -397,7 +397,7 @@ def createType(dbtype):
 
 
 @app.route('/<dbtype>/<int:item_id>/create/', methods=['GET', 'POST'])
-def createTypeLot(dbtype, item_id):
+def create_type_lot(dbtype, item_id):
     """Create new item within the category in the database"""
     # check login status
     if 'email' not in login_session:
@@ -407,13 +407,13 @@ def createTypeLot(dbtype, item_id):
 
     # get property names from table, check maximum lot# from ab and cytotoxin
     table = Table('%s_lot' % dbtype, meta, autoload=True, autoload_with=engine)
-    maxablot = (session.query(AntibodyLot)
-                .order_by(desc(AntibodyLot.id)).first().id)
-    maxtoxinlot = (session.query(CytotoxinLot)
-                   .order_by(desc(CytotoxinLot.id)).first().id)
-    originID = (session.query(eval(dbtype.capitalize()))
-                .filter_by(id=item_id).one().user_id)
-    user_id = getUserID(login_session['email'])
+    max_ab_lot = (session.query(AntibodyLot)
+                  .order_by(desc(AntibodyLot.id)).first().id)
+    max_cytotoxin_lot = (session.query(CytotoxinLot)
+                         .order_by(desc(CytotoxinLot.id)).first().id)
+    origin_id = (session.query(eval(dbtype.capitalize()))
+                 .filter_by(id=item_id).one().user_id)
+    user_id = get_user_id(login_session['email'])
 
     if request.method == 'POST':
         # instantiate new object
@@ -446,13 +446,14 @@ def createTypeLot(dbtype, item_id):
     else:
         return render_template('create-type-lot.html', dbtype=dbtype,
                                columns=table.columns, item_id=item_id,
-                               maxablot=maxablot, maxtoxinlot=maxtoxinlot,
-                               originID=originID,
-                               userID=getUserID(login_session['email']))
+                               max_ab_lot=max_ab_lot,
+                               max_cytotoxin_lot=max_cytotoxin_lot,
+                               origin_id=origin_id,
+                               user_id=get_user_id(login_session['email']))
 
 
 @app.route('/<dbtype>/<int:item_id>/edit', methods=['GET', 'POST'])
-def editType(dbtype, item_id):
+def edit_type(dbtype, item_id):
     """Edit the category (within 3 pre-defined type) in the database"""
     # check login status
     if 'email' not in login_session:
@@ -461,10 +462,10 @@ def editType(dbtype, item_id):
         abort(401)
 
     # query the item user wants to edit
-    editedItem = (session.query(eval(dbtype.capitalize()))
-                  .filter_by(id=item_id).one())
+    edit_item = (session.query(eval(dbtype.capitalize()))
+                 .filter_by(id=item_id).one())
     # make sure user is authorized to edit this item
-    if login_session['user_id'] != editedItem.user_id:
+    if login_session['user_id'] != edit_item.user_id:
         flash('You are not authorized to modify items you did not create. '
               'Please create your own item in order to modify it.')
         return redirect(url_for(dbtype))
@@ -478,8 +479,8 @@ def editType(dbtype, item_id):
                 pass  # don't modify item id# and user_id#
             else:
                 # set attribute of query object with request form data
-                setattr(editedItem, column.name, request.form[column.name])
-        session.add(editedItem)
+                setattr(edit_item, column.name, request.form[column.name])
+        session.add(edit_item)
         session.commit()
         flash('%s Edited' % dbtype.capitalize())
 
@@ -487,7 +488,7 @@ def editType(dbtype, item_id):
         image = request.files['picture']
         if image and allowed_file(image.filename):
             with store_context(fs_store):
-                editedItem.picture.from_file(image)
+                edit_item.picture.from_file(image)
         # prevent user uploading unsupported file type
         elif image and not allowed_file(image.filename):
             flash('Unsupported file detected. No image has been uploaded.')
@@ -495,11 +496,11 @@ def editType(dbtype, item_id):
     else:
         return render_template('edit-type.html', dbtype=dbtype,
                                columns=table.columns, item_id=item_id,
-                               editedItem=editedItem)
+                               edit_item=edit_item)
 
 
 @app.route('/<dbtype>/lot/<int:item_id>/edit', methods=['GET', 'POST'])
-def editTypeLot(dbtype, item_id):
+def edit_type_lot(dbtype, item_id):
     """Edit item within the category in the database"""
     # check login status
     if 'email' not in login_session:
@@ -508,28 +509,28 @@ def editTypeLot(dbtype, item_id):
         abort(401)
 
     # query the item user wants to edit
-    editedItem = (session.query(eval(dbtype.capitalize()+'Lot'))
-                  .filter_by(id=item_id).one())
+    edit_item = (session.query(eval(dbtype.capitalize()+'Lot'))
+                 .filter_by(id=item_id).one())
     # make sure user is authorized to edit this item
-    if login_session['user_id'] != editedItem.user_id:
+    if login_session['user_id'] != edit_item.user_id:
         flash('You are not authorized to modify items you did not create. '
               'Please create your own item in order to modify it.')
         return redirect(url_for(dbtype))
 
     # get property names from table, check maximum lot# from ab and cytotoxin
     table = Table('%s_lot' % dbtype, meta, autoload=True, autoload_with=engine)
-    maxablot = (session.query(AntibodyLot)
-                .order_by(desc(AntibodyLot.id)).first().id)
-    maxtoxinlot = (session.query(CytotoxinLot)
-                   .order_by(desc(CytotoxinLot.id)).first().id)
+    max_ab_lot = (session.query(AntibodyLot)
+                  .order_by(desc(AntibodyLot.id)).first().id)
+    max_cytotoxin_lot = (session.query(CytotoxinLot)
+                         .order_by(desc(CytotoxinLot.id)).first().id)
 
     if request.method == 'POST':
         # set date attribute of query object with request form data
         try:
-            editedItem.date = (datetime
-                               .strptime(request
-                                         .form['date']
-                                         .replace('-', ' '), '%Y %m %d'))
+            edit_item.date = (datetime
+                              .strptime(request
+                                        .form['date']
+                                        .replace('-', ' '), '%Y %m %d'))
         # in some cases users can input 6 digit year, catch this error
         except ValueError as detail:
             print 'Handling run-time error: ', detail
@@ -542,16 +543,16 @@ def editTypeLot(dbtype, item_id):
                 pass  # don't modify item identifier
             # set attribute of query object with request form data
             else:
-                setattr(editedItem, column.name, request.form[column.name])
-        session.add(editedItem)
+                setattr(edit_item, column.name, request.form[column.name])
+        session.add(edit_item)
         session.commit()
         flash('%s Lot Edited' % dbtype.capitalize())
         return redirect(url_for(dbtype))
     else:
         return render_template('edit-type-lot.html', dbtype=dbtype,
                                columns=table.columns, item_id=item_id,
-                               editedItem=editedItem, maxablot=maxablot,
-                               maxtoxinlot=maxtoxinlot)
+                               edit_item=edit_item, max_ab_lot=max_ab_lot,
+                               max_cytotoxin_lot=max_cytotoxin_lot)
 
 
 @app.route('/<dbtype>/<int:item_id>/delete/', methods=['GET', 'POST'])
@@ -564,18 +565,18 @@ def delete(dbtype, item_id):
         abort(401)
 
     # query the item user wants to delete
-    deleteItem = (session.query(eval(dbtype[0].upper()+dbtype[1:]))
-                  .filter_by(id=item_id).one())
+    delete_item = (session.query(eval(dbtype[0].upper()+dbtype[1:]))
+                   .filter_by(id=item_id).one())
 
     # make sure user is authorized to delete this item
-    if login_session['user_id'] != deleteItem.user_id:
+    if login_session['user_id'] != delete_item.user_id:
         flash('You are not authorized to modify items you did not create. '
               'Please create your own item in order to modify it.')
         return redirect(url_for(dbtype))
 
     if request.method == 'POST':
         try:
-            session.delete(deleteItem)
+            session.delete(delete_item)
             session.commit()
         # handling legacy error when delete invovled cascade-delete
         except IntegrityError as detail:
@@ -602,7 +603,7 @@ def collections(dbtype):
 
 
 @app.route('/<dbtype>/lot/xml')
-def collectionLots(dbtype):
+def collection_lots(dbtype):
     """
     Create an XML endpoint with all items within the categories
     available
@@ -613,53 +614,53 @@ def collectionLots(dbtype):
 
 
 @app.route('/antibody/json')
-def antibodyJSON():
+def antibody_json():
     """Create an JSON endpoint with all antibody categories"""
     antibodies = session.query(Antibody).all()
-    return jsonify(Antibodies=[i.serialize for i in antibodies])
+    return jsonify(antibodies=[i.serialize for i in antibodies])
 
 
 @app.route('/cytotoxin/json')
-def cytotoxinJSON():
+def cytotoxin_json():
     """Create an JSON endpoint with all cytotoxin categories"""
     cytotoxins = session.query(Cytotoxin).all()
-    return jsonify(Cytotoxins=[i.serialize for i in cytotoxins])
+    return jsonify(cytotoxins=[i.serialize for i in cytotoxins])
 
 
 @app.route('/adc/json')
-def adcJSON():
+def adc_json():
     """Create an JSON endpoint with all ADC categories"""
     adcs = session.query(Adc).all()
-    return jsonify(Adcs=[i.serialize for i in adcs])
+    return jsonify(adcs=[i.serialize for i in adcs])
 
 
 @app.route('/antibody/lot/json')
-def antibodyLotJSON():
+def antibody_lot_json():
     """
     Create an JSON endpoint with all items within the antibody
     categories
     """
     lots = session.query(AntibodyLot).all()
-    return jsonify(Antibody_Lots=[i.serialize for i in lots])
+    return jsonify(antibody_lots=[i.serialize for i in lots])
 
 
 @app.route('/cytotoxin/lot/json')
-def cytotoxinLotJSON():
+def cytotoxin_lot_json():
     """
     Create an JSON endpoint with all items within the cytotoxin
     categories
     """
     lots = session.query(CytotoxinLot).all()
-    return jsonify(Cytotoxin_Lots=[i.serialize for i in lots])
+    return jsonify(cytotoxin_lots=[i.serialize for i in lots])
 
 
 @app.route('/adc/lot/json')
-def adcLotJSON():
+def adc_lot_json():
     """
     Create an JSON endpoint with all items within the ADC categories
     """
     lots = session.query(AdcLot).all()
-    return jsonify(Adc_Lots=[i.serialize for i in lots])
+    return jsonify(adc_lots=[i.serialize for i in lots])
 
 
 @app.errorhandler(401)

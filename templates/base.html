@@ -35,7 +35,7 @@
             {{ nav_link('adc', 'Antibody-Drug Conjugate') }}
           </ul>
           <div>
-            {% if loggedIn %}
+            {% if logged_in %}
             <button type="button" class="btn btn-default navbar-btn navbar-right" href="/disconnect" data-toggle="modal" data-target="#sign-out">Sign Out</button>
             <p class="navbar-text navbar-right" style="padding-right:20px">Signed in as <strong>{{email}}</strong></p>
             {% else %}

@@ -64,8 +64,8 @@ class AntibodyLot(Base):
     aggregate = Column(Float, nullable=False)
     endotoxin = Column(Float, nullable=False)
     concentration = Column(Float, nullable=False)
-    vialVolume = Column(Float, nullable=False)
-    vialNumber = Column(Integer, nullable=False)
+    vial_volume = Column(Float, nullable=False)
+    vial_number = Column(Integer, nullable=False)
     antibody_id = Column(Integer, ForeignKey('antibody.id'))
     antibody = relationship('Antibody')
     user_id = Column(Integer, ForeignKey('user.id'))
@@ -79,8 +79,8 @@ class AntibodyLot(Base):
             "aggregate_percent": self.aggregate,
             "endotoxin_EU_per_mg": self.endotoxin,
             "concentration_mg_per_ml": self.concentration,
-            "vial_volume_ml": self.vialVolume,
-            "available_vials": self.vialNumber,
+            "vial_volume_ml": self.vial_volume,
+            "available_vials": self.vial_number,
             "antibody_id": self.antibody_id,
             "user_id": self.user_id
         }
@@ -91,7 +91,7 @@ class Cytotoxin(Base):
     name = Column(String(80), nullable=False)
     id = Column(Integer, primary_key=True)
     weight = Column(Float, nullable=False)
-    drugClass = Column(String(80), nullable=False)
+    drug_class = Column(String(80), nullable=False)
     lot = relationship('CytotoxinLot', cascade='all, delete-orphan')
     picture = image_attachment('CytotoxinImg')
     user_id = Column(Integer, ForeignKey('user.id'))
@@ -102,7 +102,7 @@ class Cytotoxin(Base):
         return {
             'cytotoxin_id': self.id,
             'molecular_weight': self.weight,
-            'drug_class': self.drugClass,
+            'drug_class': self.drug_class,
             'picture_url': self.picture.locate(),
             'user_id': self.user_id
         }
@@ -122,8 +122,8 @@ class CytotoxinLot(Base):
     date = Column(Date, nullable=False)
     purity = Column(Float, nullable=False)
     concentration = Column(Float, nullable=False)
-    vialVolume = Column(Float, nullable=False)
-    vialNumber = Column(Integer, nullable=False)
+    vial_volume = Column(Float, nullable=False)
+    vial_number = Column(Integer, nullable=False)
     cytotoxin_id = Column(Integer, ForeignKey('cytotoxin.id'))
     cytotoxin = relationship('Cytotoxin')
     user_id = Column(Integer, ForeignKey('user.id'))
@@ -136,8 +136,8 @@ class CytotoxinLot(Base):
             'manufactured_date': str(self.date),
             'purity_percent': self.purity,
             'concentration_mg_per_ml': self.concentration,
-            'vial_volume_ml': self.vialVolume,
-            'available_vials': self.vialNumber,
+            'vial_volume_ml': self.vial_volume,
+            'available_vials': self.vial_number,
             'cytotoxin_id': self.cytotoxin_id,
             'user_id': self.user_id
         }
@@ -170,8 +170,8 @@ class AdcLot(Base):
     aggregate = Column(Float, nullable=False)
     endotoxin = Column(Float, nullable=False)
     concentration = Column(Float, nullable=False)
-    vialVolume = Column(Float, nullable=False)
-    vialNumber = Column(Integer, nullable=False)
+    vial_volume = Column(Float, nullable=False)
+    vial_number = Column(Integer, nullable=False)
     adc_id = Column(Integer, ForeignKey('adc.id'))
     adc = relationship('Adc')
     antibodylot_id = Column(Integer,
@@ -192,8 +192,8 @@ class AdcLot(Base):
             'aggregate_percent': self.aggregate,
             'endotoxin_EU_per_mg': self.endotoxin,
             'Concentration_mg_per_ml': self.concentration,
-            'vial_volume_ml': self.vialVolume,
-            'available_vials': self.vialNumber,
+            'vial_volume_ml': self.vial_volume,
+            'available_vials': self.vial_number,
             'antibody_lot_id': self.antibodylot_id,
             'cytotoxin_lot_id': self.cytotoxinlot_id,
             'adc_id': self.adc_id,

@@ -21,15 +21,15 @@
     <ul>
       <h3><li><a href="#{{adc.name}}">{{adc.name}}</a></li></h3>
       <button type="button" class="btn btn-info" data-toggle="modal" data-target="#imgADC{{ adc.id }}" href="{{ url_for('get_picture_url',item_id=adc.id, dbtype='adc') }}">Molecular Structure</button>
-      {% if loggedIn and userID==adc.user_id %}
-      <button type="button" class="btn btn-warning" data-toggle="modal" data-target="#editADC{{ adc.id }}" href="{{url_for('editType', dbtype='adc', item_id=adc.id)}}">Edit</button>
+      {% if logged_in and user_id==adc.user_id %}
+      <button type="button" class="btn btn-warning" data-toggle="modal" data-target="#editADC{{ adc.id }}" href="{{url_for('edit_type', dbtype='adc', item_id=adc.id)}}">Edit</button>
       <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteADC{{ adc.id }}">Delete</button>
       {% else %}
       {% endif %}
     </ul>
     {% endfor %}
-    {% if loggedIn %}
-    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#create-adc" href="{{url_for('createType',dbtype='adc')}}">Add New ADC</button>
+    {% if logged_in %}
+    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#create-adc" href="{{url_for('create_type',dbtype='adc')}}">Add New ADC</button>
     {% else %}
     {% endif %}
   </div>
@@ -51,7 +51,7 @@
             <th>Concentration (mg/mL)</th>
             <th>Vial Volume (mL)</th>
             <th>Available Vials</th>
-            {% if loggedIn %}
+            {% if logged_in %}
             <th data-sortable="false">Edit</th>
             <th data-sortable="false">Delete</th>
             {% else %}
@@ -59,7 +59,7 @@
           </tr>
         </thead>
         <tbody>
-          {% for lot in lotdict[adc.id] %}
+          {% for lot in lot_dict[adc.id] %}
           <tr>
             <td>{{lot.date}}</td>
             <td>{{lot.id}}</td>
@@ -68,10 +68,10 @@
             <td>{{lot.aggregate}}</td>
             <td>{{lot.endotoxin}}</td>
             <td>{{lot.concentration}}</td>
-            <td>{{lot.vialVolume}}</td>
-            <td>{{lot.vialNumber}}</td>
-            {% if loggedIn and userID==lot.user_id %}
-            <td><button type="button" class="btn btn-warning" data-toggle="modal" data-target="#edit{{ lot.id }}" href="{{url_for('editTypeLot', dbtype='adc', item_id=lot.id)}}">Edit</button></td>
+            <td>{{lot.vial_volume}}</td>
+            <td>{{lot.vial_number}}</td>
+            {% if logged_in and user_id==lot.user_id %}
+            <td><button type="button" class="btn btn-warning" data-toggle="modal" data-target="#edit{{ lot.id }}" href="{{url_for('edit_type_lot', dbtype='adc', item_id=lot.id)}}">Edit</button></td>
             <td><button type="button" class="btn btn-danger" data-toggle="modal" data-target="#deleteLot{{ lot.id }}">Delete</button></td>
             {% else %}
             {% endif %}
@@ -80,8 +80,8 @@
           </tr>
         </tbody>
       </table>
-    {% if loggedIn %}
-    <td><button type="button" class="btn btn-primary" data-toggle="modal" data-target="#create-lot{{adc.id}}" href="{{url_for('createTypeLot', dbtype='adc', item_id=adc.id)}}">Create New Lot</button></td>
+    {% if logged_in %}
+    <td><button type="button" class="btn btn-primary" data-toggle="modal" data-target="#create-lot{{adc.id}}" href="{{url_for('create_type_lot', dbtype='adc', item_id=adc.id)}}">Create New Lot</button></td>
     {% else %}
     {% endif %}
     </div>

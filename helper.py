@@ -14,26 +14,26 @@ from init_db import session
 
 
 # User Helper Functions
-def createUser(login_session):
+def create_user(login_session):
     """
     Create a new user in the db using user info in the login_session
     """
-    newUser = User(name=login_session['username'], email=login_session[
+    new_user = User(name=login_session['username'], email=login_session[
                    'email'])
-    session.add(newUser)
+    session.add(new_user)
     session.commit()
     user = session.query(User).filter_by(email=login_session['email']).one()
     attach_picture_url(User, user.id, login_session['picture'])
     return user.id
 
 
-def getUserInfo(user_id):
+def get_user_info(user_id):
     """Get user object in the db using its user_id"""
     user = session.query(User).filter_by(id=user_id).one()
     return user
 
 
-def getUserID(email):
+def get_user_id(email):
     """Get user's id in the db using its e-mail address"""
     try:
         user = session.query(User).filter_by(email=email).one()
@@ -44,12 +44,12 @@ def getUserID(email):
 
 def login_info(login_session):
     """Provide login status to pass onto html templates"""
-    email, userID, loggedIn = None, None, False
+    email, user_id, logged_in = None, None, False
     if 'email' in login_session:
         email = login_session['email']
-        userID = getUserID(login_session['email'])
-        loggedIn = True
-    return (email, userID, loggedIn)
+        user_id = get_user_id(login_session['email'])
+        logged_in = True
+    return (email, user_id, logged_in)
 
 
 def set_category(dbtype):
@@ -63,12 +63,12 @@ def set_category(dbtype):
     lots = session.query(items).all()
 
     # create a dict to associate object id with its respective object lot items
-    lotdict = {}
+    lot_dict = {}
     for x in range(1, session.query(obj).count()+1):
-        lotdict[x] = (session.query(items)
-                      .filter(getattr(items, dbtype+'_id') == x)
-                      .order_by(items.date).all())
-    return (cat, lotdict, lots)
+        lot_dict[x] = (session.query(items)
+                       .filter(getattr(items, dbtype+'_id') == x)
+                       .order_by(items.date).all())
+    return (cat, lot_dict, lots)
 
 
 def allowed_file(filename):

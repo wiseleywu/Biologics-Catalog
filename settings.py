@@ -20,11 +20,11 @@ fs_store = HttpExposedFileSystemStore(
     path=os.path.join(app_path, 'static/images/'))
 
 # Google OAuth Objects
-Google_Client_Secrets = json.loads(
+google_client_secrets = json.loads(
     open(os.path.join(app_path,
                       'client_secrets.json'), 'r').read())
 
 # Facebook OAuth Objects
-Facebook_Client_Secrets = json.loads(
+facebook_client_secrets = json.loads(
     open(os.path.join(app_path,
                       'fb_client_secrets.json'), 'r').read())
